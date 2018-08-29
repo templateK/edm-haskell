@@ -3,12 +3,12 @@ pkgs: new: old: with pkgs.haskell.lib; {
 
 # package overrides goes here
 
-#  streamly = new.callCabal2nix "streamly" (pkgs.fetchFromGitHub {
-#    owner  = "composewell";
-#    repo   = "streamly";
-#    rev    = "6ab3ce0655191d0f66def2893686f9ea1c408e77";
-#    sha256 = "0hmvxmfyirxv0d8jsfwba9876jv3741gymib54l0md19hwd5y1vf";
-#  }) {};
+ emacs-module = new.callCabal2nix "emacs-module" (pkgs.fetchFromGitHub {
+   owner  = "sergv";
+   repo   = "emacs-module";
+   rev    = "cee3dff20f6860904688fe90d8f897e9783f39b7";
+   sha256 = "0aw0qnb12wk6cbpxn20d4ry170ag5p6vld5l2ry133mqfghv0d6a";
+ }) {};
 
 # end of package overrides
 }
