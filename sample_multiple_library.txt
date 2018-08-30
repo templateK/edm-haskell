@@ -1,0 +1,21 @@
+name:           foo
+version:        1.0
+license:        BSD3
+cabal-version:  >= 1.23
+build-type:     Simple
+
+library foo-internal
+    exposed-modules: Foo.Internal
+    build-depends: base
+    hs-source-dirs: reeeeeeeeeeeeeeeeeeeeee
+
+library
+    exposed-modules: Foo.Public
+    build-depends: foo-internal, base
+    hs-source-dirs: ./path/to/foo/bar
+                  ,  another/path/ha
+
+test-suite test-foo
+    type:       exitcode-stdio-1.0
+    main-is:    test-foo.hs
+    build-depends: foo-internal, base
