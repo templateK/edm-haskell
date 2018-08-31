@@ -1,4 +1,4 @@
-{ mkDerivation, base, bytestring, containers, emacs-module
+{ mkDerivation, base, bytestring, Cabal, containers, emacs-module
 , formatting, lens, megaparsec, mtl, random, stdenv, text, time
 , vector
 }:
@@ -9,12 +9,12 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    base bytestring containers emacs-module formatting lens megaparsec
-    mtl random text time vector
+    base bytestring Cabal containers emacs-module formatting lens
+    megaparsec mtl random text time vector
   ];
   executableHaskellDepends = [
-    base bytestring containers emacs-module formatting lens megaparsec
-    mtl random text time vector
+    base bytestring Cabal containers emacs-module formatting lens
+    megaparsec mtl random text time vector
   ];
   license = stdenv.lib.licenses.bsd3;
 }
