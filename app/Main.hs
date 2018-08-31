@@ -59,9 +59,7 @@ getCabalTarget cabalFilePath pwd = do
   where
     hasChildIn p   = anyOf folded (p `isParentDirOf`)
     isSubOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
-    compOf p dirs  = firstOf traverse
-                      $ sortLongest
-                      $ dirs ^.. folded . filtered ((p `hasChildIn`) . snd)
+    compOf p dirs  = firstOf (traverse . filtered ((p `hasChildIn`) . snd)) $ sortLongest dirs
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
     exesLens = runGetter $ (,)
