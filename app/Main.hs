@@ -1,6 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+
 module Main where
 
+
 import Control.Lens
+import Control.Monad
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
 import Distribution.Simple.Utils
@@ -11,11 +16,18 @@ import Distribution.Types.PackageName
 import Data.Maybe
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
-
+import qualified Control.Exception.Safe.Checked as Checked
 import System.Directory
 import System.FilePath
 import Data.List ((\\), sortBy)
 import Data.Ord (Down(..), comparing)
+import Data.Text.Prettyprint.Doc (pretty, (<+>))
+
+import Data.Emacs.Module.Args
+import Data.Emacs.Module.SymbolName.TH
+import Emacs.Module
+import Emacs.Module.Assert
+import Emacs.Module.Errors
 
 main :: IO ()
 main = do
@@ -36,6 +48,12 @@ getCabalTarget cabalFilePath pwd = do
       relPath = joinPath $ splitPath pwd \\ splitPath prjRoot
   -- print $ relPath
 
+  -- cabalPath <- do
+  --   exists <- doesPathExist cabalFilePath
+  --   unless exists $
+  --     Checked.throw $ mkUserError "emacsGrepRec" $
+  --       "Cabal file does not exist: " <+> pretty cabalFilePath
+  --   return cabalFilePath
 
   genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
 

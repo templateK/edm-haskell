@@ -6,11 +6,11 @@
 
 module Init (initialise) where
 
-import Control.Monad.IO.Class
+-- import Control.Monad.IO.Class
 
 import Foreign
 import Foreign.C
-import GHC.Conc
+-- import GHC.Conc
 
 import Data.Emacs.Module.Runtime (Runtime)
 import qualified Data.Emacs.Module.Runtime as Runtime

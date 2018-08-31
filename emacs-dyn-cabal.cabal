@@ -77,7 +77,9 @@ foreign-library emacs-dyn-cabal
                      , lens
                      , megaparsec
                      , mtl
+                     -- , prettyprinter >= 1.2
                      , random
+                     -- , safe-exceptions-checked >= 0.1
                      , text
                      , time
                      , vector
@@ -114,7 +116,9 @@ executable emacs-dyn-cabal-exe
                      , lens
                      , megaparsec
                      , mtl
+                     -- , prettyprinter >= 1.2
                      , random
+                     -- , safe-exceptions-checked >= 0.1
                      , text
                      , time
                      , vector
