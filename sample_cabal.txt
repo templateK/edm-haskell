@@ -43,7 +43,36 @@ library kurl-internal
   default-language:    Haskell2010
 
 
-executable kurl
+executable pleb1
+  main-is:             Main.hs
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base >=4.10 && <5
+                     , kurl
+                     , text
+                     , streamly
+                     , mtl
+                     , time
+                     , optparse-applicative
+  hs-source-dirs:      app/pleb1
+  default-language:    Haskell2010
+
+executable pleb2
+  main-is:             Main.hs
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base >=4.10 && <5
+                     , kurl
+                     , text
+                     , streamly
+                     , mtl
+                     , time
+                     , optparse-applicative
+  hs-source-dirs:      app/pleb2
+  default-language:    Haskell2010
+
+
+executable top
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
@@ -55,19 +84,4 @@ executable kurl
                      , time
                      , optparse-applicative
   hs-source-dirs:      app
-  default-language:    Haskell2010
-
-
-executable foo
-  main-is:             Main.hs
-  -- other-modules:
-  -- other-extensions:
-  build-depends:       base >=4.10 && <5
-                     , kurl
-                     , text
-                     , streamly
-                     , mtl
-                     , time
-                     , optparse-applicative
-  hs-source-dirs:      fooApp
   default-language:    Haskell2010
