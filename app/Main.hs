@@ -5,55 +5,32 @@ module Main where
 
 
 import Control.Lens
-import Control.Monad
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
-import Distribution.Simple.Utils
 import Distribution.Verbosity
 import Distribution.Types.UnqualComponentName
 import qualified Distribution.Types.Lens    as L
 import Distribution.Types.PackageName
 import Data.Maybe
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C8
-import qualified Control.Exception.Safe.Checked as Checked
-import System.Directory
 import System.FilePath
 import Data.List ((\\), sortBy)
 import Data.Ord (Down(..), comparing)
-import Data.Text.Prettyprint.Doc (pretty, (<+>))
 
-import Data.Emacs.Module.Args
-import Data.Emacs.Module.SymbolName.TH
-import Emacs.Module
-import Emacs.Module.Assert
-import Emacs.Module.Errors
 
 main :: IO ()
 main = do
-  cur <- getCurrentDirectory
-  let parent  = takeDirectory cur
-      curPath = takeFileName cur
-  print  "ff"
-
+  print =<< ("exe:top"   ==) <$> getCabalTarget "sample_cabal.txt" "app"
+  print =<< ("exe:pleb1" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb1"
+  print =<< ("exe:pleb2" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb2"
 
 -- NOTE: Don't deal with specific file. Only depend on path.
 --       You may be have to deal with file searching on
 --       current directory if you want to check the filename.
--- getCabalTarget :: FilePath -> FilePath -> IO String
+getCabalTarget :: FilePath -> FilePath -> IO String
 getCabalTarget cabalFilePath pwd = do
 
-  -- pwd <- getCurrentDirectory
   let prjRoot = dropFileName cabalFilePath
       relPath = joinPath $ splitPath pwd \\ splitPath prjRoot
-  -- print $ relPath
-
-  -- cabalPath <- do
-  --   exists <- doesPathExist cabalFilePath
-  --   unless exists $
-  --     Checked.throw $ mkUserError "emacsGrepRec" $
-  --       "Cabal file does not exist: " <+> pretty cabalFilePath
-  --   return cabalFilePath
 
   genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
 
