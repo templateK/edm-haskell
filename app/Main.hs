@@ -57,14 +57,23 @@ getCabalTarget cabalFilePath pwd = do
              then "lib:" <> gpkg
              else fromMaybe "" $ ((<>) "exe:" . fst) <$> (relPath `compOf` exes)
   where
-    hasChildIn p   = anyOf folded (p `isParentDirOf`)
-    isSubOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
-    compOf p dirs  = firstOf (traverse . filtered ((p `hasChildIn`) . snd)) $ sortLongest dirs
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
     exesLens = runGetter $ (,)
                 <$> Getter (L.exeName . to unUnqualComponentName)
                 <*> Getter (L.hsSourceDirs . to (fmap normalise))
+
+
+isSubOf :: FilePath -> Maybe [FilePath] -> Bool
+isSubOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
+
+
+compOf :: FilePath -> [(a, [FilePath])] -> Maybe (a, [FilePath])
+compOf p dirs  = firstOf (traverse . filtered ((p `hasChildIn`) . snd)) $ sortLongest dirs
+
+
+hasChildIn :: FilePath -> [FilePath] -> Bool
+hasChildIn p = anyOf folded (p `isParentDirOf`)
 
 
 isParentDirOf :: FilePath -> FilePath -> Bool
