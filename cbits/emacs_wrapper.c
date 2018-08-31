@@ -4,7 +4,7 @@
 #include "HsFFI.h"
 #include "Rts.h"
 
-#include <Emacs/Init_stub.h>
+#include <Init_stub.h>
 
 int plugin_is_GPL_compatible = 1;
 
