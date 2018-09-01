@@ -35,6 +35,7 @@ import System.FilePath
 import Data.List ((\\), sortBy)
 import Data.Maybe
 import Data.Ord (Down(..), comparing)
+import Data.Foldable (asum)
 -- import Data.Text.Prettyprint.Doc (pretty, (<+>))
 
 -- import Control.Concurrent.Async.Lifted.Safe
@@ -94,51 +95,62 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       then readGenericPackageDescription normal cabalPath
       else return emptyGenericPackageDescription
 
-  let gpkg = genPkgsDesc ^. L.packageDescription
-                         . to package
-                         . gpkgLens
-
-      libs = genPkgsDesc ^. L.condLibrary
-                         ^? _Just
-                         . to condTreeData
-                         . libsLens
-
-      exes = genPkgsDesc ^. L.condExecutables
-                         ^.. folded
-                         . _2
-                         . to condTreeData
-                         . exesLens
-
+  let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
+      libs = genPkgsDesc ^. L.condLibrary ^? _Just . to condTreeData . libsLens
+      sibs = genPkgsDesc ^. L.condSubLibraries ^.. sibsLens
+      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. fibsLens
+      exes = genPkgsDesc ^. L.condExecutables  ^.. exesLens
+      tsts = genPkgsDesc ^. L.condTestSuites   ^.. tstsLens
+      bchs = genPkgsDesc ^. L.condBenchmarks   ^.. bchsLens
   -- NOTE: For now, if we fail to find proper component name on current path,
   --       We use empty string as the default the value of the cabal target.
   --       Or? Just return emtpy string?? or... Maybe value
-  let match = if relPath `isSubOf` libs
-            then "lib:" <> gpkg
-            else fromMaybe "" $ ((<>) "exe:" . fst) <$> (relPath `compOf` exes)
-  produceRef =<< (makeString . toUTF8BS) match
+  let defaultValue = ""
+      match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
+              , mkCabalTarget relPath "lib:"   sibs -- sub library qualfication is `lib`
+              , mkCabalTarget relPath "exe:"   exes
+              , mkCabalTarget relPath "flib:"  fibs
+              , mkCabalTarget relPath "test:"  tsts
+              , mkCabalTarget relPath "bench:" bchs ]
+  -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
+  produceRef =<< (makeString . toUTF8BS) (fromMaybe defaultValue (asum match))
   where
-    hasChildIn p   = anyOf folded (p `isParentDirOf`)
-    isSubOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
-    compOf p dirs  = firstOf traverse
-                      $ sortLongest
-                      $ dirs ^.. folded . filtered ((p `hasChildIn`) . snd)
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
-    exesLens = runGetter $ (,)
-                <$> Getter (L.exeName . to unUnqualComponentName)
-                <*> Getter (L.hsSourceDirs . to (fmap normalise))
+    exesLens = compLens $ Getter (L.exeName          . to unUnqualComponentName)
+    fibsLens = compLens $ Getter (L.foreignLibName   . to unUnqualComponentName)
+    sibsLens = compLens $ Getter (L.libName . non "" . to unUnqualComponentName)
+    tstsLens = compLens $ Getter (L.testName         . to unUnqualComponentName)
+    bchsLens = compLens $ Getter (L.benchmarkName    . to unUnqualComponentName)
+    compLens gttr =
+      folded . _2 . to condTreeData
+             . runGetter ((,) <$> gttr <*> Getter (L.hsSourceDirs . to (fmap normalise)))
 
 
-isParentDirOf :: FilePath -> FilePath -> Bool
-isParentDirOf parent child = length child' == (length $ takeWhile id ee)
+isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
+isAnySubdirOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
+
+
+mkCabalTarget :: Semigroup a => FilePath -> a -> [(a, [FilePath])] -> Maybe a
+mkCabalTarget path prefix dirs = ((<>) prefix . fst) <$> (path `compOf` dirs)
+
+
+-- NOTE: Longest path is the closest path to the target path.
+-- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
+--     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
+compOf :: FilePath -> [(a, [FilePath])] -> Maybe (a, [FilePath])
+compOf p dirs = firstOf (traverse . filtered ((p `hasChildIn`) . snd)) $ sortLongest dirs
   where
-    parent' = splitDirectories parent
-    child' = splitDirectories child
-    ee = zipWith (==) parent' child'
+    sortLongest :: [(a, [FilePath])] -> [(a, [FilePath])]
+    sortLongest = sortBy (comparing $ Down . maximum . fmap length . snd)
 
 
--- Longest path is the closest path to the target path.
--- ex) The closest path to "app/foo/bar/wat" is "app/foo/bar"
---     among "app", "app/foo" and "app/foo/bar".
-sortLongest :: [(a, [FilePath])] -> [(a, [FilePath])]
-sortLongest = sortBy (comparing $ Down . maximum . fmap length . snd)
+hasChildIn :: FilePath -> [FilePath] -> Bool
+hasChildIn p = anyOf folded (p `isParentDirOf`)
+  where
+    isParentDirOf :: FilePath -> FilePath -> Bool
+    isParentDirOf parent child = length child' == (length $ takeWhile id ee)
+      where
+        parent' = splitDirectories parent
+        child' = splitDirectories child
+        ee = zipWith (==) parent' child'
