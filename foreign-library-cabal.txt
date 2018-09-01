@@ -1,0 +1,127 @@
+name:                emacs-dyn-cabal
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             BSD3
+license-file:        LICENSE
+author:              templateK
+maintainer:          templateK@github.com
+-- copyright:
+category:            Development
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=2.0
+
+library
+  ghc-options:
+    -Wall
+    -fwarn-name-shadowing
+    -fno-warn-type-defaults
+  if impl(ghc >= 8.0)
+    ghc-options:
+      -Wcompat
+      -Whi-shadowing
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wmissing-exported-signatures
+  if impl(ghc >= 8.2)
+    ghc-options:
+      -Wcpp-undef
+      -Wmissing-home-modules
+      -Wunbanged-strict-patterns
+
+  exposed-modules:     Lib
+  build-depends:       base >= 4.11
+                     , bytestring
+                     , Cabal
+                     , containers
+                     , directory
+                     , emacs-module
+                     , filepath
+                     , formatting
+                     , lens
+                     , megaparsec
+                     , mtl
+                     , random
+                     , text
+                     , time
+                     , vector
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+foreign-library fcomp
+  type:                native-shared
+  -- lib-version-info:    0:0:0
+  build-tools:
+    hsc2hs
+  c-sources:
+    cbits/emacs_wrapper.c
+  includes:
+    emacs-module.h
+  install-includes:
+    emacs-module.h
+  include-dirs:
+    cbits
+  other-modules:
+    CabalTarget
+    Init
+  build-depends:       base >=4.7
+                     , bytestring
+                     , Cabal
+                     , containers
+                     , directory
+                     , emacs-module
+                     , filepath
+                     , formatting
+                     , lens
+                     , megaparsec
+                     , mtl
+                     -- , prettyprinter >= 1.2
+                     , random
+                     -- , safe-exceptions-checked >= 0.1
+                     , text
+                     , time
+                     , vector
+                     , emacs-dyn-cabal
+  hs-source-dirs:      lib
+  default-language:    Haskell2010
+  ghc-options:         -threaded -Wall -fwarn-name-shadowing -fno-warn-type-defaults
+  if impl(ghc >= 8.0)
+    ghc-options:
+      -Wcompat
+      -Whi-shadowing
+      -Widentities
+      -Wincomplete-record-updates
+      -Wincomplete-uni-patterns
+      -Wmissing-exported-signatures
+  if impl(ghc >= 8.2)
+    ghc-options:
+      -Wcpp-undef
+      -Wmissing-home-modules
+      -Wunbanged-strict-patterns
+
+executable emacs-dyn-cabal-exe
+  main-is:             Main.hs
+  -- other-modules:
+  -- other-extensions:
+  build-depends:       base >=4.11
+                     , bytestring
+                     , Cabal
+                     , containers
+                     , emacs-module
+                     , directory
+                     , filepath
+                     , formatting
+                     , lens
+                     , megaparsec
+                     , mtl
+                     -- , prettyprinter >= 1.2
+                     , random
+                     -- , safe-exceptions-checked >= 0.1
+                     , text
+                     , time
+                     , vector
+                     , emacs-dyn-cabal
+  hs-source-dirs:      app
+  default-language:    Haskell2010
