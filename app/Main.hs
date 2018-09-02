@@ -22,11 +22,14 @@ import Data.Foldable (asum)
 
 main :: IO ()
 main = do
-  print =<< ("flib:fcomp"==) <$> getCabalTarget "foreign-library-cabal.txt" "lib"
-  print =<< ("flib:fcomp"==) <$> getCabalTarget "foreign-library-cabal.txt" "lib/foo/bar"
-  print =<< ("exe:top"   ==) <$> getCabalTarget "sample_cabal.txt" "app"
-  print =<< ("exe:pleb1" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb1"
-  print =<< ("exe:pleb2" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb2"
+  print =<< getCabalTarget "applied-fp-course.txt" "src"
+  print =<< getCabalTarget "applied-fp-course.txt" "tests"
+  print =<< getCabalTarget "applied-fp-course.txt" "exe"
+  -- print =<< ("flib:fcomp"==) <$> getCabalTarget "foreign-library-cabal.txt" "lib"
+  -- print =<< ("flib:fcomp"==) <$> getCabalTarget "foreign-library-cabal.txt" "lib/foo/bar"
+  -- print =<< ("exe:top"   ==) <$> getCabalTarget "sample_cabal.txt" "app"
+  -- print =<< ("exe:pleb1" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb1"
+  -- print =<< ("exe:pleb2" ==) <$> getCabalTarget "sample_cabal.txt" "app/pleb2"
 
 
 -- NOTE: Don't deal with specific file. Only depend on path.
