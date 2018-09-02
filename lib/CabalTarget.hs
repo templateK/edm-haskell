@@ -49,6 +49,17 @@ import Data.Foldable (asum)
 -- import Data.Traversable
 -- import GHC.Conc (getNumCapabilities)
 
+data ExeComp = ExeComp
+  { exeCompName   :: String
+  , exeCompMainIs :: String
+  , exeCompSrcs   :: [FilePath]
+  } deriving (Show)
+
+
+data FibComp = FibComp
+  { fibCompName :: String
+  , fibCompSrcs :: [FilePath]
+  } deriving (Show)
 
 
 initialise
@@ -72,10 +83,10 @@ getCabalTarget
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
 getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
-  pwd       <- fromUTF8BS <$> extractString currentDirRef
-  cabalPath <- fromUTF8BS <$> extractString cabalFilePathRef
-
+  cabalPath  <- fromUTF8BS <$> extractString cabalFilePathRef
+  hsFilePath <- fromUTF8BS <$> extractString currentDirRef
   let prjRoot = dropFileName cabalPath
+      (pwd, hsFile) = splitFileName hsFilePath
       relPath = joinPath $ splitPath pwd \\ splitPath prjRoot
 
   -- TODO: From testing the error, it shows eslip debug buffer.
@@ -97,52 +108,59 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^. L.condLibrary ^? _Just . to condTreeData . libsLens
-      sibs = genPkgsDesc ^. L.condSubLibraries ^.. sibsLens
-      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. fibsLens
-      exes = genPkgsDesc ^. L.condExecutables  ^.. exesLens
-      tsts = genPkgsDesc ^. L.condTestSuites   ^.. tstsLens
-      bchs = genPkgsDesc ^. L.condBenchmarks   ^.. bchsLens
+      exes = genPkgsDesc ^. L.condExecutables  ^.. folded . _2 . to condTreeData . exesLens
+      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. folded . _2 . to condTreeData . fibsLens
+  -- TODO: How we determine cabal target when loading Test and Benchmakr module.
+  --       cabal repl test:... doesn't make sense because it just run tests.
+
   -- NOTE: For now, if we fail to find proper component name on current path,
   --       We use empty string as the default the value of the cabal target.
   --       Or? Just return emtpy string?? or... Maybe value
   let defaultValue = ""
       match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
-              , mkCabalTarget relPath "lib:"   sibs -- sub library qualfication is `lib`
-              , mkCabalTarget relPath "exe:"   exes
-              , mkCabalTarget relPath "flib:"  fibs
-              , mkCabalTarget relPath "test:"  tsts
-              , mkCabalTarget relPath "bench:" bchs ]
+              , mkExeTarget "exe:"  relPath hsFile exes
+              , mkFibTarget "flib:" relPath fibs ] 
   -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
   produceRef =<< (makeString . toUTF8BS) (fromMaybe defaultValue (asum match))
   where
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
-    exesLens = compLens $ Getter (L.exeName          . to unUnqualComponentName)
-    fibsLens = compLens $ Getter (L.foreignLibName   . to unUnqualComponentName)
-    sibsLens = compLens $ Getter (L.libName . non "" . to unUnqualComponentName)
-    tstsLens = compLens $ Getter (L.testName         . to unUnqualComponentName)
-    bchsLens = compLens $ Getter (L.benchmarkName    . to unUnqualComponentName)
-    compLens gttr =
-      folded . _2 . to condTreeData
-             . runGetter ((,) <$> gttr <*> Getter (L.hsSourceDirs . to (fmap normalise)))
+    exesLens = runGetter (ExeComp <$> Getter (L.exeName        . to unUnqualComponentName)
+                                  <*> Getter (L.modulePath     . to normalise            )
+                                  <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
+    fibsLens = runGetter (FibComp <$> Getter (L.foreignLibName . to unUnqualComponentName)
+                                  <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
 
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
 isAnySubdirOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
 
 
-mkCabalTarget :: Semigroup a => FilePath -> a -> [(a, [FilePath])] -> Maybe a
-mkCabalTarget path prefix dirs = ((<>) prefix . fst) <$> (path `compOf` dirs)
-
-
--- NOTE: Longest path is the closest path to the target path.
--- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
---     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
-compOf :: FilePath -> [(a, [FilePath])] -> Maybe (a, [FilePath])
-compOf p dirs = firstOf (traverse . filtered ((p `hasChildIn`) . snd)) $ sortLongest dirs
+mkExeTarget :: String -> FilePath -> FilePath -> [ExeComp] -> Maybe String
+mkExeTarget prefix path file comps = ((<>) prefix . exeCompName) <$> sameOrClosest
   where
-    sortLongest :: [(a, [FilePath])] -> [(a, [FilePath])]
-    sortLongest = sortBy (comparing $ Down . maximum . fmap length . snd)
+    -- NOTE: -- If main-is field is set, then exact match is must be prioritized.
+    -- TODO: What if mains-is set and there's no match?
+    --       Should we return empty string or just make best guess?
+    --       Currently we just return best match.
+    sameOrClosest    = asumOf each (mainIsSameParent, closestParent)
+    closestParent    = firstOf traverse parentCandidates
+    mainIsSameParent = findOf traverse  ((== file) . exeCompMainIs) parentCandidates
+    parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . exeCompSrcs)) (sortLongest comps) 
+    -- NOTE: Longest path is the closest path to the target path.
+    -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
+    --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
+    sortLongest :: [ExeComp] -> [ExeComp]
+    sortLongest = sortBy (comparing $ Down . maximum . fmap length . exeCompSrcs)
+
+
+mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
+mkFibTarget prefix path comps = ((<>) prefix . fibCompName) <$> closestParent
+  where
+    closestParent    = firstOf traverse parentCandidates
+    parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . fibCompSrcs)) (sortLongest comps) 
+    sortLongest :: [FibComp] -> [FibComp]
+    sortLongest = sortBy (comparing $ Down . maximum . fmap length . fibCompSrcs)
 
 
 hasChildIn :: FilePath -> [FilePath] -> Bool
