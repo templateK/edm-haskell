@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds                #-}
 {-# LANGUAGE FlexibleContexts         #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE MultiParamTypeClasses    #-}
 {-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE QuasiQuotes              #-}
@@ -75,10 +74,6 @@ getCabalTargetDoc =
   "return cabal command target from current directory."
 
 
--- NOTE: Don't deal with specific file. Only depend on path.
---       You may be have to deal with file searching on
---       current directory if you want to check the filename.
--- TODO: return nil when there's no appropriate target.
 getCabalTarget
   :: forall m s. (WithCallStack, MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
@@ -108,21 +103,17 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       else return emptyGenericPackageDescription
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
-      libs = genPkgsDesc ^. L.condLibrary ^? _Just . to condTreeData . libsLens
+      libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
       exes = genPkgsDesc ^. L.condExecutables  ^.. folded . _2 . to condTreeData . exesLens
       fibs = genPkgsDesc ^. L.condForeignLibs  ^.. folded . _2 . to condTreeData . fibsLens
   -- TODO: How we determine cabal target when loading Test and Benchmakr module.
   --       cabal repl test:... doesn't make sense because it just run tests.
 
-  -- NOTE: For now, if we fail to find proper component name on current path,
-  --       We use empty string as the default the value of the cabal target.
-  --       Or? Just return emtpy string?? or... Maybe value
-  let defaultValue = ""
-      match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
+  let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
               , mkExeTarget "exe:"  relPath hsFile exes
               , mkFibTarget "flib:" relPath fibs ] 
   -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
-  produceRef =<< (makeString . toUTF8BS) (fromMaybe defaultValue (asum match))
+  produceRef =<< maybe (intern [esym|nil|]) (makeString . toUTF8BS) (asum match)
   where
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
@@ -134,11 +125,11 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
-isAnySubdirOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
+isAnySubdirOf p = maybe False (p `hasChildIn`)
 
 
 mkExeTarget :: String -> FilePath -> FilePath -> [ExeComp] -> Maybe String
-mkExeTarget prefix path file comps = ((<>) prefix . exeCompName) <$> sameOrClosest
+mkExeTarget prefix path file comps = (<>) prefix . exeCompName <$> sameOrClosest
   where
     -- NOTE: -- If main-is field is set, then exact match is must be prioritized.
     -- TODO: What if mains-is set and there's no match?
@@ -152,23 +143,23 @@ mkExeTarget prefix path file comps = ((<>) prefix . exeCompName) <$> sameOrClose
     -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
     --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
     sortLongest :: [ExeComp] -> [ExeComp]
-    sortLongest = sortBy (comparing $ Down . maximum . fmap length . exeCompSrcs)
+    sortLongest = sortOn (comparing $ Down . maximum . fmap length . exeCompSrcs)
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
-mkFibTarget prefix path comps = ((<>) prefix . fibCompName) <$> closestParent
+mkFibTarget prefix path comps = (<>) prefix . fibCompName <$> closestParent
   where
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . fibCompSrcs)) (sortLongest comps) 
     sortLongest :: [FibComp] -> [FibComp]
-    sortLongest = sortBy (comparing $ Down . maximum . fmap length . fibCompSrcs)
+    sortLongest = sortOn (comparing $ Down . maximum . fmap length . fibCompSrcs)
 
 
 hasChildIn :: FilePath -> [FilePath] -> Bool
 hasChildIn p = anyOf folded (p `isParentDirOf`)
   where
     isParentDirOf :: FilePath -> FilePath -> Bool
-    isParentDirOf parent child = length child' == (length $ takeWhile id ee)
+    isParentDirOf parent child = length child' == length (takeWhile id ee)
       where
         parent' = splitDirectories parent
         child' = splitDirectories child
