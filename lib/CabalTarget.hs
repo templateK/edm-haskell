@@ -78,6 +78,7 @@ getCabalTargetDoc =
 -- NOTE: Don't deal with specific file. Only depend on path.
 --       You may be have to deal with file searching on
 --       current directory if you want to check the filename.
+-- TODO: return nil when there's no appropriate target.
 getCabalTarget
   :: forall m s. (WithCallStack, MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
