@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS -Wall #-} 
 
 
 module Main where
@@ -15,7 +16,7 @@ import qualified Distribution.Types.Lens    as L
 import Distribution.Types.PackageName
 import Data.Maybe
 import System.FilePath
-import Data.List ((\\), sortBy)
+import Data.List ((\\), sortOn)
 import Data.Ord (Down(..), comparing)
 import Data.Foldable (asum)
 
@@ -44,6 +45,7 @@ main = do
             getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level02.hs")
   print =<< ("exe:level03-exe" ==) <$>
             getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level03.hs")
+
   print =<< ("flib:fcomp"==) <$>
             getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/Zeez.hs")
   print =<< ("flib:fcomp"==) <$>
@@ -72,9 +74,9 @@ getCabalTarget cabalFilePath hsFilePath =  do
   -- print $ genPkgsDesc
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
-      libs = genPkgsDesc ^. L.condLibrary ^? _Just . to condTreeData . libsLens
-      exes = genPkgsDesc ^. L.condExecutables  ^.. folded . _2 . to condTreeData . exesLens
-      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. folded . _2 . to condTreeData . fibsLens
+      libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
+      exes = genPkgsDesc ^. L.condExecutables  ^.. traverse . _2 . to condTreeData . exesLens
+      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. traverse . _2 . to condTreeData . fibsLens
   -- TODO: How we determine cabal target when loading Test and Benchmakr module.
   --       cabal repl test:... doesn't make sense because it just run tests.
 
@@ -98,11 +100,11 @@ getCabalTarget cabalFilePath hsFilePath =  do
 
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
-isAnySubdirOf p dirs = fromMaybe False ((p `hasChildIn`) <$> dirs)
+isAnySubdirOf p = maybe False (p `hasChildIn`)
 
 
 mkExeTarget :: String -> FilePath -> FilePath -> [ExeComp] -> Maybe String
-mkExeTarget prefix path file comps = ((<>) prefix . exeName) <$> sameOrClosest
+mkExeTarget prefix path file comps = (<>) prefix . exeName <$> sameOrClosest
   where
     -- NOTE: -- If main-is field is set, then exact match is must be prioritized.
     -- TODO: What if mains-is set and there's no match?
@@ -116,23 +118,23 @@ mkExeTarget prefix path file comps = ((<>) prefix . exeName) <$> sameOrClosest
     -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
     --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
     sortLongest :: [ExeComp] -> [ExeComp]
-    sortLongest = sortBy (comparing $ Down . maximum . fmap length . exeSrcs)
+    sortLongest = sortOn (Down . maximum . fmap length . exeSrcs)
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
-mkFibTarget prefix path comps = ((<>) prefix . fibName) <$> closestParent
+mkFibTarget prefix path comps = (<>) prefix . fibName <$> closestParent
   where
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . fibSrcs)) (sortLongest comps) 
     sortLongest :: [FibComp] -> [FibComp]
-    sortLongest = sortBy (comparing $ Down . maximum . fmap length . fibSrcs)
+    sortLongest = sortOn (Down . maximum . fmap length . fibSrcs)
 
 
 hasChildIn :: FilePath -> [FilePath] -> Bool
 hasChildIn p = anyOf folded (p `isParentDirOf`)
   where
     isParentDirOf :: FilePath -> FilePath -> Bool
-    isParentDirOf parent child = length child' == (length $ takeWhile id ee)
+    isParentDirOf parent child = length child' == length (takeWhile id ee)
       where
         parent' = splitDirectories parent
         child' = splitDirectories child
