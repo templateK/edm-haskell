@@ -1,5 +1,6 @@
 { useHoogle ? true
 , useGhcid ? true
+, useHlint ? true
 , target ? "emacs-dyn-cabal"
 , compiler ? "ghc843"
 }:
@@ -23,6 +24,12 @@ let
                   else old.${target};
   };
 
+  hlintf = pkgs: new: old: {
+    ${target} = if useHlint
+                  then pkgs.haskell.lib.addBuildTool old.${target} old.hlint
+                  else old.${target};
+  };
+
   config = {
     packageOverrides = pkgs: {
       haskell = pkgs.haskell // {
@@ -31,7 +38,7 @@ let
             overrides = builtins.foldl'
                                   (acc: f: pkgs.lib.composeExtensions acc (f pkgs))
                                   (_: _: {})
-                                  [ tgtf depf hgf ghcidf ];
+                                  [ tgtf depf hgf ghcidf hlintf ];
           };
         };
       };
