@@ -116,6 +116,7 @@ mkExeTarget prefix path file comps = (<>) prefix . exeName <$> sameOrClosest
     -- NOTE: Longest path is the closest path to the target path.
     -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
     --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
+    -- TODO: Make sortLongest polymorphic over field. Maybe use makeFields from lens library.
     sortLongest :: [ExeComp] -> [ExeComp]
     sortLongest = sortOn (Down . maximum . fmap length . exeSrcs)
 
