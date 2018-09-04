@@ -1,16 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# OPTIONS -Wall #-} 
+{-# OPTIONS -Wall #-}
 
 
 module Main where
 
 
 import Control.Lens
-import Distribution.PackageDescription hiding (exeName)
+import Distribution.ModuleName hiding (main)
+import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
 import Distribution.Verbosity
 import Distribution.Types.UnqualComponentName
+import Distribution.Types.ForeignLib
 import qualified Distribution.Types.Lens    as L
 import Distribution.Types.PackageName
 import Data.Maybe
@@ -21,15 +23,25 @@ import Data.Foldable (asum)
 
 
 data ExeComp = ExeComp
-  { exeName   :: String
-  , exeMainIs :: String
-  , exeSrcs   :: [FilePath]
+  { exeCompName    :: String
+  , exeCompMainIs  :: String
+  , exeCompModules :: [ModuleName]
+  , exeCompSrcs    :: [FilePath]
   } deriving (Show)
 
 
 data FibComp = FibComp
-  { fibName :: String
-  , fibSrcs :: [FilePath]
+  { fibCompName    :: String
+  , fibCompModules :: [ModuleName]
+  , fibCompSrcs    :: [FilePath]
+  } deriving (Show)
+
+
+data TstComp = TstComp
+  { tstCompName    :: String
+  , tstCompMainIs  :: TestSuiteInterface
+  , tstCompModules :: [ModuleName]
+  , tstCompSrcs    :: [FilePath]
   } deriving (Show)
 
 
@@ -37,60 +49,68 @@ main :: IO ()
 main = do
   -- print =<< getCabalTarget "applied-fp-course.txt" "src"
   -- print =<< getCabalTarget "applied-fp-course.txt" "tests"
-  let rootPath = "/Users/taemu/hs_work/nix/emacs-dyn-cabal/"
-  -- print =<< ("exe:level01-exe" ==) <$>
-  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level01.hs")
-  -- print =<< ("exe:level02-exe" ==) <$>
-  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level02.hs")
-  -- print =<< ("exe:level03-exe" ==) <$>
-  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level03.hs")
+  let rootPath = "/Users/taemu/hs_work/nix/emacs-dyn-cabal/tests/samples/"
+  print =<< ("exe:level01-exe" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level01.hs")
+  print =<< ("exe:level02-exe" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level02.hs")
+  print =<< ("exe:level03-exe" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level03.hs")
 
-  -- print =<< ("test:app-fp-tests" ==) <$>
-  print =<< getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Level03.hs")
-  -- print =<< ("test:doctests" ==) <$>
-  print =<< getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Level08.hs")
+  print =<< ("test:app-fp-tests" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Foo/Bar/Level03Tests.hs")
+  print =<< ("test:doctests" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Level08.hs")
+  print =<< ("test:app-fp-tests" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Test.hs")
+  print =<< ("test:doctests" ==) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/doctest.hs")
+  print =<< (\x -> ("test:app-fp-tests" == x) || ("test:doctests" == x)) <$>
+            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/fooo/Test04.hs")
 
-  -- print =<< ("flib:fcomp"==) <$>
-  --           getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/Zeez.hs")
-  -- print =<< ("flib:fcomp"==) <$>
-  --           getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/foo/bar/Wat.hs")
-  -- print =<< ("exe:top"   ==) <$>
-  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/What.hs")
-  -- print =<< ("exe:pleb1" ==) <$>
-  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb1/Foo.hs")
-  -- print =<< ("exe:pleb2" ==) <$>
-  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb2/Bar.hs")
+  print =<< ("flib:fcomp"==) <$>
+            getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/Zeez.hs")
+  print =<< ("flib:fcomp"==) <$>
+            getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/foo/bar/Wat.hs")
+  print =<< ("exe:top"   ==) <$>
+            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/What.hs")
+  print =<< ("exe:pleb1" ==) <$>
+            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb1/Foo.hs")
+  print =<< ("exe:pleb2" ==) <$>
+            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb2/Bar.hs")
 
 
--- NOTE: Don't deal with specific file. Only depend on path.
---       You may be have to deal with file searching on
---       current directory if you want to check the filename.
---       cabalFilePath and hsFilePath must be in the form of full path. 
--- TODO: Deal with relative path inputs.
+-- TODO: Deal with relative path inputs. Hm Maybe it is bad idea getting relative path input.
+--       because we can't know the current absolute path in emacs monad.
+--       If we get relative path, then just return nil or throw exception or something.
 getCabalTarget :: FilePath -> FilePath -> IO String
 getCabalTarget cabalFilePath hsFilePath =  do
 
   let prjRoot = dropFileName cabalFilePath
-      (pwd, mainIsFileName)  = splitFileName hsFilePath
-      relPath = joinPath $ splitPath pwd \\ splitPath prjRoot
+      (pwd, hsFile) = splitFileName hsFilePath
+      relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
+      hsFileRelPath = relPath </> hsFile
 
   genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
-  -- print $ genPkgsDesc
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
-      exes = genPkgsDesc ^. L.condExecutables  ^.. traverse . _2 . to condTreeData . exesLens
-      fibs = genPkgsDesc ^. L.condForeignLibs  ^.. traverse . _2 . to condTreeData . fibsLens
-  -- TODO: How we determine cabal target when loading Test and Benchmakr module.
-  --       cabal repl test:... doesn't make sense because it just run tests.
+      exes = genPkgsDesc ^. L.condExecutables ^.. traverse . _2 . to condTreeData . exesLens
+      fibs = genPkgsDesc ^. L.condForeignLibs ^.. traverse . _2 . to condTreeData . fibsLens
+      tsts = genPkgsDesc ^. L.condTestSuites ^.. traverse . tstsLens
 
-  -- NOTE: For now, if we fail to find proper component name on current path,
-  --       We use empty string as the default the value of the cabal target.
-  --       Or? Just return emtpy string?? or... Maybe value
+  -- NOTE: How we determine cabal target when loading Test and Benchmakr module?
+  --       It turns out that "cabal repl test:..." does exacltly supposed to do.
+  -- TODO: We need to examine benchmark and deal with figure out cabal command
+ --        options which can run foreign library.
+
+  -- NOTE: If we fail to find proper component name on current path, just return nil.
   let defaultValue = ""
       match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
-              , mkExeTarget "exe:"  relPath mainIsFileName exes
-              , mkFibTarget "flib:" relPath fibs ] 
+              , mkExeTarget "exe:"  hsFileRelPath exes
+              , mkFibTarget "flib:" relPath       fibs
+              , mkTstTarget "test:" hsFileRelPath tsts ]
+
   -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
   return $ fromMaybe defaultValue (asum match)
   where
@@ -98,49 +118,92 @@ getCabalTarget cabalFilePath hsFilePath =  do
     libsLens = L.hsSourceDirs . to (fmap normalise)
     exesLens = runGetter (ExeComp <$> Getter (L.exeName        . to unUnqualComponentName)
                                   <*> Getter (L.modulePath     . to normalise            )
+                                  <*> Getter (to exeModules                              )
                                   <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
     fibsLens = runGetter (FibComp <$> Getter (L.foreignLibName . to unUnqualComponentName)
+                                  <*> Getter (to foreignLibModules                       )
                                   <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
-
+    tstsLens = runGetter (TstComp <$> Getter (_1 . to unUnqualComponentName              )
+                                  <*> Getter (_2 . to condTreeData . L.testInterface     )
+                                  <*> Getter (_2 . to condTreeData . to testModules      )
+                                  <*> Getter (_2 . to condTreeData . L.hsSourceDirs  . to (fmap normalise)))
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
-isAnySubdirOf p = maybe False (p `hasChildIn`)
+isAnySubdirOf p = maybe False (p `hasSuperDir`)
 
 
-mkExeTarget :: String -> FilePath -> FilePath -> [ExeComp] -> Maybe String
-mkExeTarget prefix path file comps = (<>) prefix . exeName <$> sameOrClosest
+-- NOTE: Does exe component has also combinatoric problem?
+mkExeTarget :: String -> FilePath -> [ExeComp] -> Maybe String
+mkExeTarget prefix relPathFile comps = (<>) prefix . exeCompName <$> exactOrClosest
   where
     -- NOTE: -- If main-is field is set, then exact match is must be prioritized.
     -- TODO: What if mains-is set and there's no match?
     --       Should we return empty string or just make best guess?
     --       Currently we just return best match.
-    sameOrClosest    = asumOf each (mainIsSameParent, closestParent)
+    hsFile           = takeFileName relPathFile
+    relPath          = dropFileName relPathFile
+    -- exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
+    exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
     closestParent    = firstOf traverse parentCandidates
-    mainIsSameParent = findOf traverse  ((== file) . exeMainIs) parentCandidates
-    parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . exeSrcs)) (sortLongest comps) 
+    mainIsSameParent = findOf traverse  ((== hsFile) . exeCompMainIs) parentCandidates
+    parentCandidates = toListOf (traverse . filtered ((relPath `hasSuperDir`) . exeCompSrcs)) (sortLongest comps)
     -- NOTE: Longest path is the closest path to the target path.
     -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
     --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
     -- TODO: Make sortLongest polymorphic over field. Maybe use makeFields from lens library.
     sortLongest :: [ExeComp] -> [ExeComp]
-    sortLongest = sortOn (Down . maximum . fmap length . exeSrcs)
+    sortLongest = sortOn (Down . maximum . fmap length . exeCompSrcs)
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
-mkFibTarget prefix path comps = (<>) prefix . fibName <$> closestParent
+mkFibTarget prefix path comps = (<>) prefix . fibCompName <$> closestParent
   where
     closestParent    = firstOf traverse parentCandidates
-    parentCandidates = toListOf (traverse . filtered ((path `hasChildIn`) . fibSrcs)) (sortLongest comps) 
+    parentCandidates = toListOf (traverse . filtered ((path `hasSuperDir`) . fibCompSrcs)) (sortLongest comps)
     sortLongest :: [FibComp] -> [FibComp]
-    sortLongest = sortOn (Down . maximum . fmap length . fibSrcs)
+    sortLongest = sortOn (Down . maximum . fmap length . fibCompSrcs)
 
 
-hasChildIn :: FilePath -> [FilePath] -> Bool
-hasChildIn p = anyOf folded (p `isParentDirOf`)
+mkTstTarget :: String -> FilePath -> [TstComp] -> Maybe String
+mkTstTarget prefix relPathFile comps = (<>) prefix . tstCompName <$> exactOrClosest
   where
-    isParentDirOf :: FilePath -> FilePath -> Bool
-    isParentDirOf parent child = length child' == length (takeWhile id ee)
-      where
-        parent' = splitDirectories parent
-        child' = splitDirectories child
-        ee = zipWith (==) parent' child'
+    exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
+    mainIsSameParent = findOf traverse (matchTestComp relPathFile) parentCandidates
+    closestParent    = firstOf traverse parentCandidates
+    parentCandidates = toListOf (traverse . filtered ((relPathFile `hasSuperDir`) . tstCompSrcs)) (sortLongest comps)
+    -- TODO: Find out which combinations are valid is important. Otherwise we will be just rolling the wheel.
+    sortLongest :: [TstComp] -> [TstComp]
+    sortLongest = sortOn (Down . maximum . fmap length . tstCompSrcs)
+
+
+matchTestComp :: FilePath -> TstComp -> Bool
+matchTestComp relPathFile tstComp = hsFileName == tstCompHsFileName
+                                 || elemOf traverse relPathWithoutExt hsSourceDirsModulesCombinations
+  where
+    -- NOTE: How do we deal with combinatoric explosion with hs-source-dirs and component path?
+    --       What is the legit cases of this situation?
+    --       Same module Path with difference hs-source-dirs is correct cabal configuration?
+    --       For now, we just assume that all of the combinations are valid.
+    -- TODO : Figure out what is like setting TestSuiteLibV09.
+    hsSourceDirsModulesCombinations = do srcRel  <- tstCompSrcs tstComp
+                                         compRel <- toFilePath <$> tstCompModules tstComp
+                                         return $ srcRel </> compRel
+    hsFileName          = takeFileName relPathFile
+    relPathWithoutExt   = dropExtension relPathFile
+    tstCompHsFileName   = case tstCompMainIs tstComp of
+        (TestSuiteExeV10 _ hsName) -> hsName
+        _ -> ""
+        -- (TestSuiteLibV09 _ moduleName) -> dropExtension relPathFile == toFilePath moduleName
+        -- (TestSuiteUnsupported _)       -> False
+
+
+hasSuperDir :: FilePath -> [FilePath] -> Bool
+hasSuperDir p = anyOf traverse (p `isSubDirOf`)
+
+
+isSubDirOf :: FilePath -> FilePath -> Bool
+isSubDirOf child parent = length parent' == length (takeWhile id ee)
+    where
+    child' = splitDirectories child
+    parent' = splitDirectories parent
+    ee = zipWith (==) child' parent'
