@@ -163,6 +163,7 @@ test-suite doctests
                      , Level05Tests
                      , Level06Tests
                      , Level07Tests
+                     , Level08Tests
 
   ghc-options:         -threaded
   main-is:             doctests.hs

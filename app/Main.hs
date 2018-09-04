@@ -38,23 +38,28 @@ main = do
   -- print =<< getCabalTarget "applied-fp-course.txt" "src"
   -- print =<< getCabalTarget "applied-fp-course.txt" "tests"
   let rootPath = "/Users/taemu/hs_work/nix/emacs-dyn-cabal/"
-  print =<< ("exe:level01-exe" ==) <$>
-            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level01.hs")
-  print =<< ("exe:level02-exe" ==) <$>
-            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level02.hs")
-  print =<< ("exe:level03-exe" ==) <$>
-            getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level03.hs")
+  -- print =<< ("exe:level01-exe" ==) <$>
+  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level01.hs")
+  -- print =<< ("exe:level02-exe" ==) <$>
+  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level02.hs")
+  -- print =<< ("exe:level03-exe" ==) <$>
+  --           getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level03.hs")
 
-  print =<< ("flib:fcomp"==) <$>
-            getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/Zeez.hs")
-  print =<< ("flib:fcomp"==) <$>
-            getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/foo/bar/Wat.hs")
-  print =<< ("exe:top"   ==) <$>
-            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/What.hs")
-  print =<< ("exe:pleb1" ==) <$>
-            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb1/Foo.hs")
-  print =<< ("exe:pleb2" ==) <$>
-            getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb2/Bar.hs")
+  -- print =<< ("test:app-fp-tests" ==) <$>
+  print =<< getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Level03.hs")
+  -- print =<< ("test:doctests" ==) <$>
+  print =<< getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "tests/Level08.hs")
+
+  -- print =<< ("flib:fcomp"==) <$>
+  --           getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/Zeez.hs")
+  -- print =<< ("flib:fcomp"==) <$>
+  --           getCabalTarget (rootPath <> "foreign-library-cabal.txt") (rootPath <> "lib/foo/bar/Wat.hs")
+  -- print =<< ("exe:top"   ==) <$>
+  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/What.hs")
+  -- print =<< ("exe:pleb1" ==) <$>
+  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb1/Foo.hs")
+  -- print =<< ("exe:pleb2" ==) <$>
+  --           getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb2/Bar.hs")
 
 
 -- NOTE: Don't deal with specific file. Only depend on path.
