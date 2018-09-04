@@ -9,7 +9,6 @@ module Main where
 import Control.Lens
 import Distribution.PackageDescription hiding (exeName)
 import Distribution.PackageDescription.Parsec
-import Distribution.PackageDescription.PrettyPrint
 import Distribution.Verbosity
 import Distribution.Types.UnqualComponentName
 import qualified Distribution.Types.Lens    as L
@@ -17,7 +16,7 @@ import Distribution.Types.PackageName
 import Data.Maybe
 import System.FilePath
 import Data.List ((\\), sortOn)
-import Data.Ord (Down(..), comparing)
+import Data.Ord (Down(..))
 import Data.Foldable (asum)
 
 
