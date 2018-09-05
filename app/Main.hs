@@ -7,10 +7,12 @@ module Main where
 
 
 import Control.Lens
+import Control.Monad.Catch
 import Distribution.ModuleName hiding (main)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
 import Distribution.Verbosity
+import Distribution.Types.GenericPackageDescription
 import Distribution.Types.UnqualComponentName
 import Distribution.Types.ForeignLib
 import qualified Distribution.Types.Lens    as L
@@ -79,7 +81,14 @@ main = do
   print =<< ("exe:pleb2" ==) <$>
             getCabalTarget (rootPath <> "sample_cabal.txt") (rootPath <> "app/pleb2/Bar.hs")
 
-
+  print =<< ("" ==) <$>
+            getCabalTarget ("") ("")
+  print =<< ("" ==) <$>
+            getCabalTarget (rootPath <> "sample_cabal.txt") ("")
+  print =<< ("" ==) <$>
+            getCabalTarget ("") (rootPath <> "app/pleb2/Bar.hs")
+  print =<< ("" ==) <$>
+            getCabalTarget ("") (rootPath <> "/")
 -- TODO: Deal with relative path inputs. Hm Maybe it is bad idea getting relative path input.
 --       because we can't know the current absolute path in emacs monad.
 --       If we get relative path, then just return nil or throw exception or something.
@@ -90,8 +99,11 @@ getCabalTarget cabalFilePath hsFilePath =  do
       (pwd, hsFile) = splitFileName hsFilePath
       relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
       hsFileRelPath = relPath </> hsFile
-
-  genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
+-- catchIOError :: MonadCatch m => m a -> (IOError -> m a) -> m a
+  genPkgsDesc <- catchIOError
+                   (readGenericPackageDescription normal cabalFilePath)
+                   (return . const emptyGenericPackageDescription)
+  -- genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens

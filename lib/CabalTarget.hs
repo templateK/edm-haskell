@@ -19,6 +19,7 @@ import Emacs.Module.Errors
 import qualified Data.ByteString.Char8 as C8
 
 import Control.Lens
+import Control.Monad.Catch
 import Distribution.ModuleName hiding (main)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
@@ -30,7 +31,7 @@ import Distribution.Types.PackageName
 import Distribution.Types.GenericPackageDescription
 import qualified Distribution.Types.Lens    as L
 
-import System.Directory
+-- import System.Directory
 import System.FilePath
 
 import Data.List ((\\), sortOn)
@@ -107,11 +108,9 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
   --       "Cabal file does not exist: " <+> pretty cabalFilePath
   --   return cabalFilePath
 
-  genPkgsDesc   <- liftIO $ do
-    exists <- doesPathExist cabalPath
-    if exists
-      then readGenericPackageDescription normal cabalPath
-      else return emptyGenericPackageDescription
+  genPkgsDesc <- liftIO $ catchIOError
+                            (readGenericPackageDescription normal cabalPath)
+                            (return . const emptyGenericPackageDescription)
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
