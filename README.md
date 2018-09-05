@@ -28,7 +28,7 @@ Put following elisp code in your emacs configuration.
 (emacs-dyn-cabal-target "absolute cabal file path" "absolute path of the target file")
 ```
 Absolute cabal file path can be obtained by calling function `haskell-cabal-find-file` from haskell-mode.
-and you can get absolute target directory of the buffer by using variable `default-directory`
+and you can get absolute target file path by calling function `buffer-file-name`.
 
 ### Return Value
 If this function cannot find cabal target, it just returns empty string.
