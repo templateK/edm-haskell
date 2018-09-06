@@ -31,5 +31,5 @@ Absolute cabal file path can be obtained by calling function `haskell-cabal-find
 and you can get absolute target file path by calling function `buffer-file-name`.
 
 ### Return Value
-If this function cannot find cabal target, it just returns empty string.
+If this function cannot find cabal target, it just returns `nil`.
 Otherwise, returns string which can be used by cabal commands.for example `lib:foo`, `exe:bar`
