@@ -22,6 +22,7 @@ import System.FilePath
 import Data.List ((\\), sortOn)
 import Data.Ord (Down(..))
 import Data.Foldable (asum)
+import qualified Data.ByteString.Char8 as C8
 
 
 data ExeComp = ExeComp
@@ -99,11 +100,9 @@ getCabalTarget cabalFilePath hsFilePath =  do
       (pwd, hsFile) = splitFileName hsFilePath
       relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
       hsFileRelPath = relPath </> hsFile
--- catchIOError :: MonadCatch m => m a -> (IOError -> m a) -> m a
-  genPkgsDesc <- catchIOError
-                   (readGenericPackageDescription normal cabalFilePath)
-                   (return . const emptyGenericPackageDescription)
-  -- genPkgsDesc <- readGenericPackageDescription normal cabalFilePath
+
+  genPkgsDesc <- (fromMaybe emptyGenericPackageDescription) . parseGenericPackageDescriptionMaybe
+                 <$> catchIOError (C8.readFile cabalFilePath) (return . const mempty)
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
