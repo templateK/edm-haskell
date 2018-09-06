@@ -24,19 +24,20 @@ import Distribution.ModuleName hiding (main)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
 import Distribution.Simple.Utils
-import Distribution.Verbosity
+-- import Distribution.Verbosity
 import Distribution.Types.ForeignLib
 import Distribution.Types.UnqualComponentName
 import Distribution.Types.PackageName
 import Distribution.Types.GenericPackageDescription
 import qualified Distribution.Types.Lens    as L
 
--- import System.Directory
+-- import System.Directory (doesFileExist)
 import System.FilePath
 
 import Data.List ((\\), sortOn)
 import Data.Ord (Down(..))
 import Data.Foldable (asum)
+import Data.Maybe (fromMaybe)
 -- import Data.Text.Prettyprint.Doc (pretty, (<+>))
 
 -- import Control.Concurrent.Async.Lifted.Safe
@@ -87,9 +88,10 @@ getCabalTargetDoc =
 
 
 getCabalTarget
-  :: forall m s. (WithCallStack, MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
+  :: forall m s. (WithCallStack, MonadCatch (m s), MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
 getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
+
 
   cabalPath  <- fromUTF8BS <$> extractString cabalFilePathRef
   hsFilePath <- fromUTF8BS <$> extractString currentDirRef
@@ -97,20 +99,9 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       (pwd, hsFile) = splitFileName hsFilePath
       relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
       hsFileRelPath = relPath </> hsFile
-  -- TODO: From testing the error, it shows eslip debug buffer.
-  --       Once exception occurs, the  dynamic module won't recover from it.
-  --       How to recover from previous error?
-  --       For now, just use empty package when there's no cabal package file.
-  -- cabalPath <- do
-  --   exists <- liftIO $ doesPathExist cabalFilePath
-  --   unless exists $
-  --     Checked.throw $ mkUserError "emacsGrepRec" $
-  --       "Cabal file does not exist: " <+> pretty cabalFilePath
-  --   return cabalFilePath
 
-  genPkgsDesc <- liftIO $ catchIOError
-                            (readGenericPackageDescription normal cabalPath)
-                            (return . const emptyGenericPackageDescription)
+  genPkgsDesc <- liftIO $ (fromMaybe emptyGenericPackageDescription) . parseGenericPackageDescriptionMaybe
+                        <$> catchIOError (C8.readFile cabalPath) (return . const mempty)
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
