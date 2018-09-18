@@ -36,9 +36,9 @@ Absolute cabal file path can be obtained by calling function `haskell-cabal-find
 and you can get absolute target file path by calling function `buffer-file-name`.
 
 ```
-(edm-haskell-score-matches "niddle" "haystack")
+(edm-haskell-score-matches "niddle" '("haystack1" "haystack2" "haystack3"))
 ```
-`niddle` is search target and `haystack` is candidates of the search.
+`niddle` is search target and `haystack#` is candidates of the search.
 
 
 ### Return Value
@@ -47,6 +47,7 @@ and you can get absolute target file path by calling function `buffer-file-name`
     Otherwise, returns string which can be used by cabal commands.for example `lib:foo`, `exe:bar`
 
  - `edm-haskell-score-matches`
+    If `haystacks` is nil then returns nil, and the search target is `nil` then it throws exception.
 
 
 ## Attribution
