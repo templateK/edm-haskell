@@ -8,12 +8,11 @@ module Emacs.Init (initialise) where
 
 import Foreign
 import Foreign.C
--- import GHC.Conc
--- import Control.Monad.IO.Class
 
+import Data.ByteString.Char8 as C8
 import Data.Emacs.Module.Runtime (Runtime)
 import qualified Data.Emacs.Module.Runtime as Runtime
-import Data.Emacs.Module.SymbolName.TH
+import Data.Emacs.Module.SymbolName
 import Emacs.Module
 import Emacs.Module.Assert
 import Emacs.Module.Errors
@@ -42,8 +41,7 @@ initialise'
   :: (WithCallStack, Throws EmacsThrow, Throws EmacsError, Throws EmacsInternalError)
   => EmacsM s Bool
 initialise' = do
-  -- liftIO $ setNumCapabilities 4
   Emacs.FuzzyMatch.initialise
   Emacs.CabalTarget.initialise
-  _ <- provide [esym|edm-haskell|]
+  _ <- provide (mkSymbolName . C8.pack $  "edm-haskell")
   pure True
