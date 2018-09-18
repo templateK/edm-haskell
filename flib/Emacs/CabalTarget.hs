@@ -6,11 +6,9 @@
 {-# LANGUAGE ScopedTypeVariables      #-}
 
 
-module CabalTarget (initialise) where
+module Emacs.CabalTarget (initialise) where
 
--- import Control.Monad
 import Control.Monad.IO.Class
--- import qualified Control.Exception.Safe.Checked as Checked
 import Data.Emacs.Module.Args
 import Data.Emacs.Module.SymbolName.TH
 import Emacs.Module
@@ -24,32 +22,18 @@ import Distribution.ModuleName hiding (main)
 import Distribution.PackageDescription
 import Distribution.PackageDescription.Parsec
 import Distribution.Simple.Utils
--- import Distribution.Verbosity
 import Distribution.Types.ForeignLib
 import Distribution.Types.UnqualComponentName
 import Distribution.Types.PackageName
 import Distribution.Types.GenericPackageDescription
 import qualified Distribution.Types.Lens    as L
 
--- import System.Directory (doesFileExist)
 import System.FilePath
-
 import Data.List ((\\), sortOn)
 import Data.Ord (Down(..))
 import Data.Foldable (asum)
 import Data.Maybe (fromMaybe)
--- import Data.Text.Prettyprint.Doc (pretty, (<+>))
 
--- import Control.Concurrent.Async.Lifted.Safe
--- import Control.Concurrent.STM
--- import Control.Concurrent.STM.TMQueue
--- import qualified Control.Exception.Safe.Checked as Checked
--- import Control.Monad.Base
--- import Control.Monad.Trans.Control
-
--- import Data.Text.Prettyprint.Doc
--- import Data.Traversable
--- import GHC.Conc (getNumCapabilities)
 
 data ExeComp = ExeComp
   { exeCompName    :: String
@@ -78,7 +62,7 @@ initialise
   :: (WithCallStack, Throws EmacsThrow, Throws EmacsError, Throws EmacsInternalError)
   => EmacsM s ()
 initialise =
-  bindFunction [esym|emacs-dyn-cabal-target|] =<<
+  bindFunction [esym|edm-haskell-cabal-target|] =<<
     makeFunction getCabalTarget getCabalTargetDoc
 
 

@@ -4,13 +4,12 @@
 {-# LANGUAGE GADTs                    #-}
 {-# LANGUAGE QuasiQuotes              #-}
 
-module Init (initialise) where
-
--- import Control.Monad.IO.Class
+module Emacs.Init (initialise) where
 
 import Foreign
 import Foreign.C
 -- import GHC.Conc
+-- import Control.Monad.IO.Class
 
 import Data.Emacs.Module.Runtime (Runtime)
 import qualified Data.Emacs.Module.Runtime as Runtime
@@ -19,7 +18,8 @@ import Emacs.Module
 import Emacs.Module.Assert
 import Emacs.Module.Errors
 
-import qualified CabalTarget
+import qualified Emacs.CabalTarget
+import qualified Emacs.FuzzyMatch
 
 
 foreign export ccall initialise :: Ptr Runtime -> IO CBool
@@ -43,6 +43,7 @@ initialise'
   => EmacsM s Bool
 initialise' = do
   -- liftIO $ setNumCapabilities 4
-  CabalTarget.initialise
-  _ <- provide [esym|emacs-dyn-cabal|]
+  Emacs.FuzzyMatch.initialise
+  Emacs.CabalTarget.initialise
+  _ <- provide [esym|edm-haskell|]
   pure True

@@ -4,23 +4,29 @@
 #include "HsFFI.h"
 #include "Rts.h"
 
-#include <Init_stub.h>
+/* #include <Emacs/Init_stub.h> */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern HsBool initialise(struct emacs_runtime *ert);
+#ifdef __cplusplus
+}
+#endif
+
+#define ARR_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 int plugin_is_GPL_compatible = 1;
 
 HsBool init(void) {
-  int argc = 0;
-  char *argv[] = { NULL };
+  char *argv[] = { "edm_haskell", "+RTS", "-N", "-A32m", "-RTS", NULL };
+  int argc = ARR_SIZE(argv) - 1;
+  /* char *argv[] = { NULL }; */
+  /* int argc = 0; */
   char **pargv = argv;
-
-  // Initialize Haskell runtime
-  {
-    RtsConfig conf = defaultRtsConfig;
-    conf.rts_opts_enabled = RtsOptsAll;
-    hs_init_ghc(&argc, &pargv, conf);
-  }
-  // hs_init(NULL, NULL);
-
+  RtsConfig conf = defaultRtsConfig;
+  conf.rts_opts_enabled = RtsOptsAll;
+  hs_init_ghc(&argc, &pargv, conf);
   return HS_BOOL_TRUE;
 }
 
@@ -28,17 +34,6 @@ void deinit(void) {
   hs_exit();
 }
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-// extern HsBool initialise(void);
-// #ifdef __cplusplus
-// }
-// #endif
-
-
-int
-emacs_module_init(struct emacs_runtime *ert)
-{
+int emacs_module_init(struct emacs_runtime *ert) {
   return !(init() && initialise(ert));
 }
