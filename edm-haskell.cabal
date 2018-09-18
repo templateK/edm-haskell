@@ -25,12 +25,13 @@ library
 
 foreign-library edm-haskell
   type:                native-shared
---  lib-version-info:    0:0:0
   build-tools:         hsc2hs
   c-sources:           cbits/emacs_wrapper.c
   includes:            emacs-module.h
   install-includes:    emacs-module.h
   include-dirs:        cbits
+
+  -- lib-version-info:  0:0:0
 
   if os(Windows)
     options: standalone

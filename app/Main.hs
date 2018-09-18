@@ -51,7 +51,7 @@ main :: IO ()
 main = do
   -- print =<< getCabalTarget "applied-fp-course.txt" "src"
   -- print =<< getCabalTarget "applied-fp-course.txt" "tests"
-  let rootPath = "/Users/taemu/hs_work/nix/emacs-dyn-cabal/tests/samples/"
+  let rootPath = "/Users/taemu/hs_work/nix/edm-haskell/tests/samples/"
   print =<< ("exe:level01-exe" ==) <$>
             getCabalTarget (rootPath <> "applied-fp-course.txt") (rootPath <> "exe/Level01.hs")
   print =<< ("exe:level02-exe" ==) <$>
