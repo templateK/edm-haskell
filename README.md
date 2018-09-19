@@ -1,5 +1,5 @@
 # edm-haskell
-A emacs dynamic module with haskell.
+A emacs dynamic module by haskell.
   - Returns the cabal target of the given file path.
   - Fast fuzzy matching score calculation with parallel haskell runtime.
 
