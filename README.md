@@ -51,7 +51,7 @@ and you can get absolute target file path by calling function `buffer-file-name`
 
 
 ## Attribution
-  - `FuzzyMatch` Module is the awesome work which is copied from [emacs-native][1]
+  - `FuzzyMatch` Module is the awesome work which is based on [emacs-native][1]
  
  
 [1]: https://github.com/sergv/emacs-native.git
