@@ -23,8 +23,6 @@ import Control.Monad.Trans.Control
 
 import qualified Data.ByteString.Char8 as C8
 import Data.Foldable
-import qualified Data.List as L
-import Data.Ord
 import qualified Data.Text as T
 
 import Data.Emacs.Module.SymbolName.TH
@@ -33,6 +31,7 @@ import Emacs.Module.Assert (WithCallStack)
 import Emacs.Module.Errors
 
 import Data.FuzzyMatch
+import qualified Data.Discrimination.Sorting as DS
 
 initialise
   :: (WithCallStack, Throws EmacsThrow, Throws EmacsError, Throws EmacsInternalError)
@@ -56,7 +55,7 @@ scoreMatches (R needle (R haystacks Stop)) = do
   haystacks' <- extractListRevWith (\str -> (, str) <$> extractText str) haystacks
   let matches
         = map (\(_, _, emacsStr) -> emacsStr)
-        $ L.sortOn (\(score, str, _emacsStr) -> (Down score, T.length str))
+        $ DS.sortWith (\(score, str, _emacsStr) -> (score*(-1), T.length str))
         $ runPar
         $ parMap (\(str, emacsStr) -> (mScore $ fuzzyMatch (computeHeatMap str mempty) needle' str, str, emacsStr)) haystacks'
   produceRef =<< makeList matches

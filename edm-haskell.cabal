@@ -46,6 +46,7 @@ foreign-library edm-haskell
                      , Cabal
                      , containers
                      , directory
+                     , discrimination
                      , edm-haskell
                      , emacs-module
                      , exceptions
