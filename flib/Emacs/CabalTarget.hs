@@ -75,8 +75,6 @@ getCabalTarget
   :: forall m s. (WithCallStack, MonadCatch (m s), MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
 getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
-
-
   cabalPath  <- fromUTF8BS <$> extractString cabalFilePathRef
   hsFilePath <- fromUTF8BS <$> extractString currentDirRef
   let prjRoot = dropFileName cabalPath
