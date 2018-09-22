@@ -139,6 +139,7 @@ getCabalTarget cabalFilePath hsFilePath =  do
                                   <*> Getter (_2 . to condTreeData . to testModules      )
                                   <*> Getter (_2 . to condTreeData . L.hsSourceDirs  . to (fmap normalise)))
 
+
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
 isAnySubdirOf p = maybe False (p `hasSuperDir`)
 

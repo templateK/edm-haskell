@@ -2,5 +2,5 @@ dist/
 dist-newstyle/
 result*
 webroot/
-.ghc.environment.x86_64-darwin-8.4.3
+.ghc.environment*
 .DS_Store
