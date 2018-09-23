@@ -95,9 +95,10 @@ executable edm-haskell-exe
                      , bytestring
                      , Cabal
                      , containers
+                     , directory
+                     , discrimination
                      , emacs-module
                      , exceptions
-                     , directory
                      , filepath
                      , formatting
                      , lens

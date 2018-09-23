@@ -18,8 +18,8 @@ import qualified Distribution.Types.Lens    as L
 import Distribution.Types.PackageName
 import Data.Maybe
 import System.FilePath
-import Data.List ((\\), sortOn)
-import Data.Ord (Down(..))
+import Data.Discrimination.Sorting (sortWith)
+import Data.List ((\\))
 import Data.Foldable (asum)
 import qualified Data.ByteString.Char8 as C8
 
@@ -164,7 +164,7 @@ mkExeTarget prefix relPathFile comps = (<>) prefix . exeCompName <$> exactOrClos
     --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
     -- TODO: Make sortLongest polymorphic over field. Maybe use makeFields from lens library.
     sortLongest :: [ExeComp] -> [ExeComp]
-    sortLongest = sortOn (Down . maximum . fmap length . exeCompSrcs)
+    sortLongest = sortWith ((\x -> x *(-1)) . maximum . fmap length . exeCompSrcs)
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
@@ -173,7 +173,7 @@ mkFibTarget prefix path comps = (<>) prefix . fibCompName <$> closestParent
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = toListOf (traverse . filtered ((path `hasSuperDir`) . fibCompSrcs)) (sortLongest comps)
     sortLongest :: [FibComp] -> [FibComp]
-    sortLongest = sortOn (Down . maximum . fmap length . fibCompSrcs)
+    sortLongest = sortWith ((\x -> x *(-1)) . maximum . fmap length . fibCompSrcs)
 
 
 mkTstTarget :: String -> FilePath -> [TstComp] -> Maybe String
@@ -185,7 +185,7 @@ mkTstTarget prefix relPathFile comps = (<>) prefix . tstCompName <$> exactOrClos
     parentCandidates = toListOf (traverse . filtered ((relPathFile `hasSuperDir`) . tstCompSrcs)) (sortLongest comps)
     -- TODO: Find out which combinations are valid is important. Otherwise we will be just rolling the wheel.
     sortLongest :: [TstComp] -> [TstComp]
-    sortLongest = sortOn (Down . maximum . fmap length . tstCompSrcs)
+    sortLongest = sortWith ((\x -> x *(-1)) . maximum . fmap length . tstCompSrcs)
 
 
 matchTestComp :: FilePath -> TstComp -> Bool
