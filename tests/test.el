@@ -11,15 +11,6 @@
 (defun to-root (path) (expand-file-name (concat default-directory path)))
 
 (cl-defstruct testcase number cabal-sample hs-source expected)
-;; "#s(testcase #2 tests/samples/applied-fp-course.txt exe/Main.hs) => exe:level01-exe"
-
-;; "#s(testcase #3 tests/samples/foreign-library-cabal.txt src/Lib.hs) => lib:emacs-dyn-cabal"
-
-;; "#s(testcase #4 tests/samples/sample_cabal.txt src/Lib.hs) => lib:kurl"
-
-;; "#s(testcase #5 tests/samples/sample_multiple_library.txt path/to/foo/bar/Sample.hs) => lib:foo"
-
-;; "#s(testcase #6 tests/samples/sample_multiple_library.txt another/path/ha/Wat.hs) => lib:foo"
 
 (setq testcase-params-alist
       `(,(make-testcase
@@ -50,7 +41,7 @@
           :number        5
           :cabal-sample  "tests/samples/sample_cabal.txt"
           :hs-source     "src/Lib.hs"
-          :expected      "lib:kurl"
+          :expected      "lib:kur"
           )
         ,(make-testcase
           :number        6
@@ -72,15 +63,18 @@
    (to-root (testcase-hs-source test-param))))
 
 (defun test-param-formatter (test-param output)
-  (let ((result (if (equal (testcase-expected test-param) output) "SUCCESS" "FAILURE!!!!!!!!!!!!!!!!")))
-    (concat
-     (format "case #%d        : %s\n" (testcase-number test-param) result)
-     (format "cabal-sample   : %s\n" (testcase-cabal-sample test-param ))
-     (format "hs-source-file : %s\n" (testcase-hs-source    test-param ))
-     (format "expected       : %s\n" (testcase-expected     test-param ))
-     (format "output         : %s\n" output                             ) )))
+  (concat
+   (if (equal (testcase-expected test-param) output)
+       (format "case #%d        : %s\n" (testcase-number test-param) "SUCCESS")
+     (concat
+      "---------------------------------------------------------------------------\n"
+      (format "case #%d        : %s\n" (testcase-number test-param) "FAILURE")
+      (format "cabal-sample   : %s\n" (testcase-cabal-sample test-param ))
+      (format "hs-source-file : %s\n" (testcase-hs-source    test-param ))
+      (format "expected       : %s\n" (testcase-expected     test-param ))
+      (format "output         : %s\n" output                             )
+      "---------------------------------------------------------------------------\n"))))
 
 (defun test-edm-haskell-cabal-target ()
   (cl-loop for param in testcase-params-alist
-           do (princ (concat (test-param-formatter param (test-single-case param)) "\n"))))
-
+           do (princ (test-param-formatter param (test-single-case param)))))
