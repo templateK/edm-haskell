@@ -82,7 +82,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
       hsFileRelPath = relPath </> hsFile
 
-  genPkgsDesc <- liftIO $ (fromMaybe emptyGenericPackageDescription) . parseGenericPackageDescriptionMaybe
+  genPkgsDesc <- liftIO $ fromMaybe emptyGenericPackageDescription . parseGenericPackageDescriptionMaybe
                         <$> catchIOError (C8.readFile cabalPath) (return . const mempty)
 
   let gpkg = genPkgsDesc ^. L.packageDescription . to package . gpkgLens
@@ -132,38 +132,36 @@ mkExeTarget prefix relPathFile comps = (<>) prefix . exeCompName <$> exactOrClos
     --       Currently we just return best match.
     hsFile           = takeFileName relPathFile
     relPath          = dropFileName relPathFile
-    -- exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
     exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
     closestParent    = firstOf traverse parentCandidates
     mainIsSameParent = findOf traverse  ((== hsFile) . exeCompMainIs) parentCandidates
-    parentCandidates = toListOf (traverse . filtered ((relPath `hasSuperDir`) . exeCompSrcs)) (sortLongest comps)
-    -- NOTE: Longest path is the closest path to the target path.
-    -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
-    --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
-    -- TODO: Make sortLongest polymorphic over field. Maybe use makeFields from lens library.
-    sortLongest :: [ExeComp] -> [ExeComp]
-    sortLongest = sortOn (Down . maximum . fmap length . exeCompSrcs)
+    parentCandidates = getCandiates comps relPath exeCompSrcs
+
+
+-- NOTE: Longest path is the closest path to the target path.
+-- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
+--     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
+getCandiates :: [a] -> FilePath -> (a -> [FilePath]) -> [a]
+getCandiates cs path getter = sortByLengthDescend getter cs ^.. traverse . filtered ((path `hasSuperDir`) . getter)
+  where
+    sortByLengthDescend :: (Functor t, Foldable t, Foldable t1) => (a1 -> t (t1 a)) -> [a1] -> [a1]
+    sortByLengthDescend f = sortOn (Down . maximum . fmap length . f)
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String
-mkFibTarget prefix path comps = (<>) prefix . fibCompName <$> closestParent
+mkFibTarget prefix relPath comps = (<>) prefix . fibCompName <$> closestParent
   where
     closestParent    = firstOf traverse parentCandidates
-    parentCandidates = toListOf (traverse . filtered ((path `hasSuperDir`) . fibCompSrcs)) (sortLongest comps)
-    sortLongest :: [FibComp] -> [FibComp]
-    sortLongest = sortOn (Down . maximum . fmap length . fibCompSrcs)
+    parentCandidates = getCandiates comps relPath fibCompSrcs
 
 
 mkTstTarget :: String -> FilePath -> [TstComp] -> Maybe String
-mkTstTarget prefix relPathFile comps = (<>) prefix . tstCompName <$> exactOrClosest
+mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
   where
     exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
-    mainIsSameParent = findOf traverse (matchTestComp relPathFile) parentCandidates
+    mainIsSameParent = findOf traverse (matchTestComp relPath) parentCandidates
     closestParent    = firstOf traverse parentCandidates
-    parentCandidates = toListOf (traverse . filtered ((relPathFile `hasSuperDir`) . tstCompSrcs)) (sortLongest comps)
-    -- TODO: Find out which combinations are valid is important. Otherwise we will be just rolling the wheel.
-    sortLongest :: [TstComp] -> [TstComp]
-    sortLongest = sortOn (Down . maximum . fmap length . tstCompSrcs)
+    parentCandidates = getCandiates comps relPath tstCompSrcs
 
 
 matchTestComp :: FilePath -> TstComp -> Bool
@@ -192,8 +190,8 @@ hasSuperDir p = anyOf traverse (p `isSubDirOf`)
 
 
 isSubDirOf :: FilePath -> FilePath -> Bool
-isSubDirOf child parent = length parent' == length (takeWhile id ee)
+isSubDirOf child parent = length parent' == length (takeWhile id commonPath)
     where
-    child' = splitDirectories child
-    parent' = splitDirectories parent
-    ee = zipWith (==) child' parent'
+    child'     = splitDirectories child
+    parent'    = splitDirectories parent
+    commonPath = zipWith (==) child' parent'
