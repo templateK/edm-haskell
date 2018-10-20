@@ -91,10 +91,9 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       fibs = genPkgsDesc ^. L.condForeignLibs ^.. traverse . _2 . to condTreeData . fibsLens
       tsts = genPkgsDesc ^. L.condTestSuites ^.. traverse . tstsLens
 
-  -- NOTE: How we determine cabal target when loading Test and Benchmakr module?
-  --       It turns out that "cabal repl test:..." does exacltly supposed to do.
-  -- TODO: We need to examine benchmark and deal with figure out cabal command
- --        options which can run foreign library.
+  -- NOTE: Foreign library loading can be down via cabal new-repl --repl-options=-fobject-code
+  --       that is not a edm-haskell's concern.
+
 
   -- NOTE: If we fail to find proper component name on current path, just return nil.
   let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
@@ -162,6 +161,11 @@ mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
     mainIsSameParent = findOf traverse (matchTestComp relPath) parentCandidates
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = getCandiates comps relPath tstCompSrcs
+
+
+-- TODO: We need to implement Benchmark
+-- mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
+-- mkBchTarget = undefined
 
 
 matchTestComp :: FilePath -> TstComp -> Bool
