@@ -173,6 +173,14 @@ mkFibTarget prefix relPath comps = (<>) prefix . fibCompName <$> closestParent
     parentCandidates = getCandiates comps relPath fibCompSrcs
 
 
+-- TODO: more precise implementation needs.
+mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
+mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> closestParent
+  where
+    closestParent    = firstOf traverse parentCandidates
+    parentCandidates = getCandiates comps relPath bchCompSrcs
+
+
 mkTstTarget :: String -> FilePath -> [TstComp] -> Maybe String
 mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
   where
@@ -180,14 +188,6 @@ mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
     mainIsSameParent = findOf traverse (matchTestComp relPath) parentCandidates
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = getCandiates comps relPath tstCompSrcs
-
-
--- TODO: We need to implement Benchmark
-mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
-mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> closestParent
-  where
-    closestParent    = firstOf traverse parentCandidates
-    parentCandidates = getCandiates comps relPath bchCompSrcs
 
 
 matchTestComp :: FilePath -> TstComp -> Bool
