@@ -60,6 +60,7 @@ data TstComp = TstComp
 
 data BchComp = BchComp
   { bchCompName    :: String
+  , bchCompMainIs  :: BenchmarkInterface
   , bchCompModules :: [ModuleName]
   , bchCompSrcs    :: [FilePath]
   } deriving (Show)
@@ -106,7 +107,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
   let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
               , mkExeTarget "exe:"   hsFileRelPath exes
               , mkFibTarget "flib:"  relPath       fibs
-              , mkBchTarget "bench:" relPath       bchs
+              , mkBchTarget "bench:" hsFileRelPath bchs
               , mkTstTarget "test:"  hsFileRelPath tsts ]
   -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
   produceRef =<< maybe (intern [esym|nil|]) (makeString . toUTF8BS) (asum match)
@@ -126,6 +127,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
     bchsLens = runGetter $ BchComp
                <$> Getter ( _1 . to unUnqualComponentName                               )
+               <*> Getter ( _2 . to condTreeData . L.benchmarkInterface                      )
                <*> Getter ( _2 . to condTreeData .                  to benchmarkModules )
                <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise) )
 
@@ -175,10 +177,21 @@ mkFibTarget prefix relPath comps = (<>) prefix . fibCompName <$> closestParent
 
 -- TODO: more precise implementation needs.
 mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
-mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> closestParent
+mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> exactOrClosest
   where
+    exactOrClosest   = asumOf each (mainIsSameParent, closestParent)
+    mainIsSameParent = findOf traverse (matchBenchComp relPath) parentCandidates
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = getCandiates comps relPath bchCompSrcs
+
+    matchBenchComp :: FilePath -> BchComp -> Bool
+    matchBenchComp replPathFile comp =
+      matchExact replPathFile bchCompHsFileName (bchCompSrcs comp) (bchCompModules comp)
+      where
+        bchCompHsFileName  = case bchCompMainIs comp of
+          (BenchmarkExeV10 _ hsName) -> hsName
+          _   -> ""
+          -- (BenchmarkUnsupported _)   -> ""
 
 
 mkTstTarget :: String -> FilePath -> [TstComp] -> Maybe String
@@ -189,26 +202,30 @@ mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = getCandiates comps relPath tstCompSrcs
 
+    matchTestComp :: FilePath -> TstComp -> Bool
+    matchTestComp replPathFile comp =
+      matchExact replPathFile tstCompHsFileName (tstCompSrcs comp) (tstCompModules comp)
+      where
+        -- TODO : Figure out what is like setting TestSuiteLibV09.
+        tstCompHsFileName  = case tstCompMainIs comp of
+            (TestSuiteExeV10 _ hsName) -> hsName
+            _ -> ""
+            -- (TestSuiteLibV09 _ moduleName) -> dropExtension relPathFile == toFilePath moduleName
+            -- (TestSuiteUnsupported _)       -> ""
 
-matchTestComp :: FilePath -> TstComp -> Bool
-matchTestComp relPathFile tstComp = hsFileName == tstCompHsFileName
-                                 || elemOf traverse relPathWithoutExt hsSourceDirsModulesCombinations
+
+matchExact :: FilePath -> FilePath -> [FilePath] -> [ModuleName] -> Bool
+matchExact relPathFile interfaceFileName hsSrcPaths compModuleNames =
+  hsFileName == interfaceFileName || elemOf traverse relPathWithoutExt srcRelCompRelCombi
   where
     -- NOTE: How do we deal with combinatoric explosion with hs-source-dirs and component path?
     --       What is the legit cases of this situation?
     --       Same module Path with difference hs-source-dirs is correct cabal configuration?
     --       For now, we just assume that all of the combinations are valid.
-    -- TODO : Figure out what is like setting TestSuiteLibV09.
-    hsSourceDirsModulesCombinations = do srcRel  <- tstCompSrcs tstComp
-                                         compRel <- toFilePath <$> tstCompModules tstComp
-                                         return $ srcRel </> compRel
-    hsFileName          = takeFileName relPathFile
-    relPathWithoutExt   = dropExtension relPathFile
-    tstCompHsFileName   = case tstCompMainIs tstComp of
-        (TestSuiteExeV10 _ hsName) -> hsName
-        _ -> ""
-        -- (TestSuiteLibV09 _ moduleName) -> dropExtension relPathFile == toFilePath moduleName
-        -- (TestSuiteUnsupported _)       -> False
+    srcRelCompRelCombi = [ srcRel </> compRel | srcRel <- hsSrcPaths
+                                              , compRel <- toFilePath <$> compModuleNames ]
+    hsFileName         = takeFileName relPathFile
+    relPathWithoutExt  = dropExtension relPathFile
 
 
 hasSuperDir :: FilePath -> [FilePath] -> Bool
