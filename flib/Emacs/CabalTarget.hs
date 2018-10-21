@@ -58,6 +58,13 @@ data TstComp = TstComp
   } deriving (Show)
 
 
+data BchComp = BchComp
+  { bchCompName    :: String
+  , bchCompModules :: [ModuleName]
+  , bchCompSrcs    :: [FilePath]
+  } deriving (Show)
+
+
 initialise
   :: (WithCallStack, Throws EmacsThrow, Throws EmacsError, Throws EmacsInternalError)
   => EmacsM s ()
@@ -89,6 +96,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       libs = genPkgsDesc ^? L.condLibrary . _Just . to condTreeData . libsLens
       exes = genPkgsDesc ^. L.condExecutables ^.. traverse . _2 . to condTreeData . exesLens
       fibs = genPkgsDesc ^. L.condForeignLibs ^.. traverse . _2 . to condTreeData . fibsLens
+      bchs = genPkgsDesc ^. L.condBenchmarks ^.. traverse . bchsLens
       tsts = genPkgsDesc ^. L.condTestSuites ^.. traverse . tstsLens
 
   -- NOTE: Foreign library loading can be down via cabal new-repl --repl-options=-fobject-code
@@ -96,9 +104,10 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
   -- NOTE: If we fail to find proper component name on current path, just return nil.
   let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
-              , mkExeTarget "exe:"  hsFileRelPath exes
-              , mkFibTarget "flib:" relPath       fibs
-              , mkTstTarget "test:" hsFileRelPath tsts ]
+              , mkExeTarget "exe:"   hsFileRelPath exes
+              , mkFibTarget "flib:"  relPath       fibs
+              , mkBchTarget "bench:" relPath       bchs
+              , mkTstTarget "test:"  hsFileRelPath tsts ]
   -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
   produceRef =<< maybe (intern [esym|nil|]) (makeString . toUTF8BS) (asum match)
   where
@@ -115,8 +124,13 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
                <*> Getter (                    to foreignLibModules     )
                <*> Getter ( L.hsSourceDirs   . to (fmap normalise)      )
 
+    bchsLens = runGetter $ BchComp
+               <$> Getter ( _1 . to unUnqualComponentName                               )
+               <*> Getter ( _2 . to condTreeData .                  to benchmarkModules )
+               <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise) )
+
     tstsLens = runGetter $ TstComp
-               <$> Getter ( _1 .                               to unUnqualComponentName )
+               <$> Getter ( _1 . to unUnqualComponentName                               )
                <*> Getter ( _2 . to condTreeData . L.testInterface                      )
                <*> Getter ( _2 . to condTreeData .                  to testModules      )
                <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise) )
@@ -169,8 +183,13 @@ mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
 
 
 -- TODO: We need to implement Benchmark
--- mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
--- mkBchTarget = undefined
+mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
+mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> exactOrClosest
+  where
+    exactOrClosest   = asumOf each (Nothing, closestParent)
+    -- mainIsSameParent = findOf traverse (matchTestComp relPath) parentCandidates
+    closestParent    = firstOf traverse parentCandidates
+    parentCandidates = getCandiates comps relPath bchCompSrcs
 
 
 matchTestComp :: FilePath -> TstComp -> Bool
