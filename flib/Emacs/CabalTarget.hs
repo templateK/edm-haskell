@@ -8,31 +8,31 @@
 
 module Emacs.CabalTarget (initialise) where
 
-import Control.Monad.IO.Class
-import Data.Emacs.Module.Args
-import Data.Emacs.Module.SymbolName.TH
-import Emacs.Module
-import Emacs.Module.Assert
-import Emacs.Module.Errors
-import qualified Data.ByteString.Char8 as C8
+import           Control.Monad.IO.Class
+import           Data.Emacs.Module.Args
+import           Data.Emacs.Module.SymbolName.TH
+import           Emacs.Module
+import           Emacs.Module.Assert
+import           Emacs.Module.Errors
+import qualified Data.ByteString.Char8                         as C8
 
-import Control.Lens
-import Control.Monad.Catch
-import Distribution.ModuleName hiding (main)
-import Distribution.PackageDescription
-import Distribution.PackageDescription.Parsec
-import Distribution.Simple.Utils
-import Distribution.Types.ForeignLib
-import Distribution.Types.UnqualComponentName
-import Distribution.Types.PackageName
-import Distribution.Types.GenericPackageDescription
-import qualified Distribution.Types.Lens    as L
+import           Control.Lens
+import           Control.Monad.Catch
+import           Distribution.ModuleName                       hiding (main)
+import           Distribution.PackageDescription
+import           Distribution.PackageDescription.Parsec
+import           Distribution.Simple.Utils
+import           Distribution.Types.ForeignLib
+import           Distribution.Types.UnqualComponentName
+import           Distribution.Types.PackageName
+import           Distribution.Types.GenericPackageDescription
+import qualified Distribution.Types.Lens                       as L
 
-import System.FilePath
-import Data.List ((\\), sortOn)
-import Data.Ord (Down(..))
-import Data.Foldable (asum)
-import Data.Maybe (fromMaybe)
+import           System.FilePath
+import           Data.List
+import           Data.Ord
+import           Data.Foldable
+import           Data.Maybe
 
 
 data ExeComp = ExeComp
@@ -105,17 +105,26 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
   where
     gpkgLens = L.pkgName . to unPackageName
     libsLens = L.hsSourceDirs . to (fmap normalise)
-    exesLens = runGetter (ExeComp <$> Getter (L.exeName        . to unUnqualComponentName)
-                                  <*> Getter (L.modulePath     . to normalise            )
-                                  <*> Getter (to exeModules                              )
-                                  <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
-    fibsLens = runGetter (FibComp <$> Getter (L.foreignLibName . to unUnqualComponentName)
-                                  <*> Getter (to foreignLibModules                       )
-                                  <*> Getter (L.hsSourceDirs   . to (fmap normalise))    )
-    tstsLens = runGetter (TstComp <$> Getter (_1 . to unUnqualComponentName              )
-                                  <*> Getter (_2 . to condTreeData . L.testInterface     )
-                                  <*> Getter (_2 . to condTreeData . to testModules      )
-                                  <*> Getter (_2 . to condTreeData . L.hsSourceDirs  . to (fmap normalise)))
+    exesLens = runGetter $ ExeComp
+               <$> Getter ( L.exeName        . to unUnqualComponentName )
+               <*> Getter ( L.modulePath     . to normalise             )
+               <*> Getter (                    to exeModules            )
+               <*> Getter ( L.hsSourceDirs   . to (fmap normalise)      )
+
+    fibsLens = runGetter $ FibComp
+               <$> Getter ( L.foreignLibName . to unUnqualComponentName )
+               <*> Getter (                    to foreignLibModules     )
+               <*> Getter ( L.hsSourceDirs   . to (fmap normalise)      )
+
+    tstsLens = runGetter $ TstComp
+               <$> Getter ( _1 .                                    to unUnqualComponentName )
+               <*> Getter ( _2 . to condTreeData . L.testInterface                           )
+               <*> Getter ( _2 . to condTreeData .                  to testModules           )
+               <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise)      )
+
+
+
+
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
 isAnySubdirOf p = maybe False (p `hasSuperDir`)
