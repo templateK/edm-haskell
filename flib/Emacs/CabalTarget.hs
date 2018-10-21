@@ -92,8 +92,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
       tsts = genPkgsDesc ^. L.condTestSuites ^.. traverse . tstsLens
 
   -- NOTE: Foreign library loading can be down via cabal new-repl --repl-options=-fobject-code
-  --       that is not a edm-haskell's concern.
-
+  --       that is not a edm-haskell's concern currently.
 
   -- NOTE: If we fail to find proper component name on current path, just return nil.
   let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
@@ -117,13 +116,10 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
                <*> Getter ( L.hsSourceDirs   . to (fmap normalise)      )
 
     tstsLens = runGetter $ TstComp
-               <$> Getter ( _1 .                                    to unUnqualComponentName )
-               <*> Getter ( _2 . to condTreeData . L.testInterface                           )
-               <*> Getter ( _2 . to condTreeData .                  to testModules           )
-               <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise)      )
-
-
-
+               <$> Getter ( _1 .                               to unUnqualComponentName )
+               <*> Getter ( _2 . to condTreeData . L.testInterface                      )
+               <*> Getter ( _2 . to condTreeData .                  to testModules      )
+               <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise) )
 
 
 isAnySubdirOf :: FilePath -> Maybe [FilePath] -> Bool
