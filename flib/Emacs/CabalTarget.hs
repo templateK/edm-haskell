@@ -184,10 +184,8 @@ mkTstTarget prefix relPath comps = (<>) prefix . tstCompName <$> exactOrClosest
 
 -- TODO: We need to implement Benchmark
 mkBchTarget :: String -> FilePath -> [BchComp] -> Maybe String
-mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> exactOrClosest
+mkBchTarget prefix relPath comps = (<>) prefix . bchCompName <$> closestParent
   where
-    exactOrClosest   = asumOf each (Nothing, closestParent)
-    -- mainIsSameParent = findOf traverse (matchTestComp relPath) parentCandidates
     closestParent    = firstOf traverse parentCandidates
     parentCandidates = getCandiates comps relPath bchCompSrcs
 
