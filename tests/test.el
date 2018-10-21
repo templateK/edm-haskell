@@ -60,6 +60,18 @@
           :cabal-sample  "tests/samples/cardano-sl-explorer.txt"
           :hs-source     "bench/Main.hs"
           :expected      "bench:cardano-explorer-bench"
+          )
+        ,(make-testcase
+          :number        9
+          :cabal-sample  "tests/samples/cardano-sl-explorer.txt"
+          :hs-source     "bench/Bench/Pos/Explorer/ServerBench.hs"
+          :expected      "bench:cardano-explorer-bench"
+          )
+        ,(make-testcase
+          :number        10
+          :cabal-sample  "tests/samples/cardano-sl-explorer.txt"
+          :hs-source     "ben/Bench/Pos/Explorer/ServerBench.hs"
+          :expected      nil
           ))
 ) ;; end of test cases
 
