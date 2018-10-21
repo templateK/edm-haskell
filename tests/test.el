@@ -41,7 +41,7 @@
           :number        5
           :cabal-sample  "tests/samples/sample_cabal.txt"
           :hs-source     "src/Lib.hs"
-          :expected      "lib:kur"
+          :expected      "lib:kurl"
           )
         ,(make-testcase
           :number        6
