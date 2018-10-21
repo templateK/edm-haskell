@@ -54,6 +54,12 @@
           :cabal-sample  "tests/samples/sample_multiple_library.txt"
           :hs-source     "another/path/ha/Wat.hs"
           :expected      "lib:foo"
+          )
+        ,(make-testcase
+          :number        8
+          :cabal-sample  "tests/samples/cardano-sl-explorer.txt"
+          :hs-source     "bench/Main.hs"
+          :expected      "bench:cardano-explorer-bench"
           ))
 ) ;; end of test cases
 
