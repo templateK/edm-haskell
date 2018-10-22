@@ -1,27 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# OPTIONS -Wall #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# OPTIONS -Wall              #-}
 
 
 module Main where
 
 
-import Control.Lens
-import Control.Monad.Catch
-import Distribution.ModuleName hiding (main)
-import Distribution.PackageDescription
-import Distribution.PackageDescription.Parsec
-import Distribution.Types.GenericPackageDescription
-import Distribution.Types.UnqualComponentName
-import Distribution.Types.ForeignLib
-import qualified Distribution.Types.Lens    as L
-import Distribution.Types.PackageName
-import Data.Maybe
-import System.FilePath
-import Data.Discrimination.Sorting (sortWith)
-import Data.List ((\\))
-import Data.Foldable (asum)
-import qualified Data.ByteString.Char8 as C8
+import           Control.Lens
+import           Control.Monad.Catch
+import qualified Data.ByteString.Char8                          as C8
+import           Data.Discrimination.Sorting                           (sortWith)
+import           Data.Foldable                                         (asum)
+import           Data.List                                             ((\\))
+import           Data.Maybe
+import           Distribution.ModuleName                        hiding (main)
+import           Distribution.PackageDescription
+import           Distribution.PackageDescription.Parsec
+import           Distribution.Types.GenericPackageDescription
+import           Distribution.Types.ForeignLib
+import qualified Distribution.Types.Lens                        as L
+import           Distribution.Types.PackageName
+import           Distribution.Types.UnqualComponentName
+import           System.FilePath
 
 
 data ExeComp = ExeComp

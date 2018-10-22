@@ -127,7 +127,7 @@ getCabalTarget (R cabalFilePathRef (R currentDirRef Stop)) = do
 
     bchsLens = runGetter $ BchComp
                <$> Getter ( _1 . to unUnqualComponentName                               )
-               <*> Getter ( _2 . to condTreeData . L.benchmarkInterface                      )
+               <*> Getter ( _2 . to condTreeData . L.benchmarkInterface                 )
                <*> Getter ( _2 . to condTreeData .                  to benchmarkModules )
                <*> Getter ( _2 . to condTreeData . L.hsSourceDirs . to (fmap normalise) )
 
