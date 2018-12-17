@@ -113,3 +113,14 @@ executable edm-haskell-exe
                      , edm-haskell
   hs-source-dirs:      app
   default-language:    Haskell2010
+
+
+executable cabal-target
+  main-is:             CabalTargetApp.hs
+  build-depends:       base >=4.12 && <5
+                     , butcher
+                     , bytestring
+                     , edm-haskell
+  hs-source-dirs:      cabaltarget
+  default-language:    Haskell2010
+  ghc-options:         -threaded -O2
