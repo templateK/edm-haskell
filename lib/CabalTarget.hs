@@ -63,6 +63,9 @@ data BchComp = BchComp
   } deriving (Show)
 
 
+-- | getCabalTarget guesses approroiate cabal target and returns cabal target string
+-- | cabalPathBS  : File Path of Cabal Configuration File
+-- | hsFilePathBS : File Path of Haskell Source File
 getCabalTarget :: ByteString -> ByteString -> IO (Maybe ByteString)
 getCabalTarget cabalPathBS hsFilePathBS = do
   let cabalPath     = fromUTF8BS cabalPathBS
@@ -72,6 +75,8 @@ getCabalTarget cabalPathBS hsFilePathBS = do
       relPath       = joinPath $ splitPath pwd \\ splitPath prjRoot
       hsFileRelPath = relPath </> hsFile
 
+  -- TODO: Instead swallow IO error, we must express the error explicitly via Either
+  --       or any other mechanism.
   cabalContentBs <- catchIOError (C8.readFile cabalPath) (return . const mempty)
   let genPkgsDesc = fromMaybe emptyGenericPackageDescription
                               $ parseGenericPackageDescriptionMaybe cabalContentBs
