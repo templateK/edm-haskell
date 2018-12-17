@@ -17,8 +17,13 @@ cabal-version:       >=2
 
 
 library
-  -- exposed-modules:
+  exposed-modules:     CabalTarget
   build-depends:       base >= 4.11
+                     , bytestring
+                     , Cabal
+                     , exceptions
+                     , filepath
+                     , lens
   hs-source-dirs:      lib 
   default-language:    Haskell2010
 
@@ -43,16 +48,13 @@ foreign-library edm-haskell
   build-depends:       async
                      , base >= 4.11
                      , bytestring
-                     , Cabal
                      , containers
                      , directory
                      , discrimination
                      , edm-haskell
                      , emacs-module
                      , exceptions
-                     , filepath
                      , formatting
-                     , lens
                      , lifted-async
                      , megaparsec
                      , monad-control
