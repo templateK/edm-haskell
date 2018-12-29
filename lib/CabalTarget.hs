@@ -63,7 +63,7 @@ data BchComp = BchComp
   } deriving (Show)
 
 
--- | getCabalTarget guesses approroiate cabal target and returns cabal target string
+-- | getCabalTarget Guesses appropriate cabal target and returns cabal target string
 -- | cabalPathBS  : File Path of Cabal Configuration File
 -- | hsFilePathBS : File Path of Haskell Source File
 getCabalTarget :: ByteString -> ByteString -> IO (Maybe ByteString)
@@ -91,13 +91,11 @@ getCabalTarget cabalPathBS hsFilePathBS = do
   -- NOTE: Foreign library loading can be down via cabal new-repl --repl-options=-fobject-code
   --       that is not a edm-haskell's concern currently.
 
-  -- NOTE: If we fail to find proper component name on current path, just return nil.
   let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
               , mkExeTarget "exe:"   hsFileRelPath exes
               , mkFibTarget "flib:"  relPath       fibs
               , mkBchTarget "bench:" hsFileRelPath bchs
               , mkTstTarget "test:"  hsFileRelPath tsts ]
-  -- NOTE: Maybe is instance of Alternative. So asum returns the first Just value.
   return $ toUTF8BS <$> asum match
   where
     gpkgLens = L.pkgName . to unPackageName
@@ -208,8 +206,8 @@ matchExact relPathFile interfaceFileName hsSrcPaths compModuleNames =
   where
     -- NOTE: How do we deal with combinatoric explosion with hs-source-dirs and component path?
     --       What is the legit cases of this situation?
-    --       Same module Path with difference hs-source-dirs is correct cabal configuration?
-    --       For now, we just assume that all of the combinations are valid.
+    --       Are all of the combinations of a module Path with different hs-source-dirs valid
+    --       cabal configuration?  For now, we just assume that all of the combinations are valid.
     srcRelCompRelCombi = [ srcRel </> compRel | srcRel <- hsSrcPaths
                                               , compRel <- toFilePath <$> compModuleNames ]
     hsFileName         = takeFileName relPathFile
