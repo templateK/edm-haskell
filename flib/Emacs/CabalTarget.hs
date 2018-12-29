@@ -41,5 +41,5 @@ getCabalTargetEmacs
 getCabalTargetEmacs (R cabalFilePathRef (R currentDirRef Stop)) = do
   cabalPath  <- extractString cabalFilePathRef
   hsFilePath <- extractString currentDirRef
-  foo <- liftIO $ getCabalTarget cabalPath hsFilePath
-  produceRef =<< maybe (intern [esym|nil|]) makeString foo
+  cabalTgt   <- liftIO $ getCabalTarget cabalPath hsFilePath
+  produceRef =<< maybe (intern [esym|nil|]) makeString cabalTgt
