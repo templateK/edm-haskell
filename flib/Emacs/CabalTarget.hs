@@ -38,8 +38,9 @@ getCabalTargetDoc =
 getCabalTargetEmacs
   :: forall m s. (WithCallStack, MonadCatch (m s), MonadThrow (m s), MonadEmacs m, Monad (m s), MonadIO (m s))
   => EmacsFunction ('S ('S 'Z)) 'Z 'False s m
-getCabalTargetEmacs (R cabalFilePathRef (R currentDirRef Stop)) = do
-  cabalPath  <- extractString cabalFilePathRef
-  hsFilePath <- extractString currentDirRef
-  cabalTgt   <- liftIO $ getCabalTarget cabalPath hsFilePath
-  produceRef =<< maybe (intern [esym|nil|]) makeString cabalTgt
+getCabalTargetEmacs (R cabalFilePathRef (R currentDirRef Stop)) =
+  produceRef =<< maybe (intern [esym|nil|]) makeString
+             =<< liftIO
+             =<< getCabalTarget
+              <$> extractString cabalFilePathRef
+              <*> extractString currentDirRef
