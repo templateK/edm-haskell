@@ -91,11 +91,15 @@ getCabalTarget cabalPathBS hsFilePathBS = do
   -- NOTE: Foreign library loading can be down via cabal new-repl --repl-options=-fobject-code
   --       that is not a edm-haskell's concern currently.
 
-  let match = [ if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
+  let match = [ mkExeExact  "exe:"   hsFileRelPath exes
+              , mkTstExact  "test:"  hsFileRelPath tsts
+              , mkBchExact  "bench:" hsFileRelPath bchs
+              , if relPath `isAnySubdirOf` libs then Just ("lib:" <> gpkg) else Nothing
               , mkExeTarget "exe:"   hsFileRelPath exes
+              , mkTstTarget "test:"  hsFileRelPath tsts
               , mkFibTarget "flib:"  relPath       fibs
               , mkBchTarget "bench:" hsFileRelPath bchs
-              , mkTstTarget "test:"  hsFileRelPath tsts ]
+              ]
   return $ toUTF8BS <$> asum match
   where
     gpkgLens = L.pkgName . to unPackageName
@@ -144,14 +148,53 @@ mkExeTarget prefix relPathFile comps = (<>) prefix . exeCompName <$> exactOrClos
     parentCandidates = getCandiates comps relPath exeCompSrcs
 
 
+mkExeExact :: String -> FilePath -> [ExeComp] -> Maybe String
+mkExeExact prefix relPathFile comps =
+  (prefix <>) . exeCompName <$> findOf traverse (\comp -> exeCompMainIs comp == relPathFile) comps
+
+
+mkTstExact :: String -> FilePath -> [TstComp] -> Maybe String
+mkTstExact prefix relPathFile comps =
+  (prefix <>) . tstCompName <$> findOf traverse ((==) relPathFile . tstInfToFilePath . tstCompMainIs) comps
+  where
+    tstInfToFilePath :: TestSuiteInterface -> String
+    tstInfToFilePath (TestSuiteExeV10 _ filePath) = filePath
+    -- tstInfToFilePath (TestSuiteLibV09 _ mdlName)  = toFilePath mdlName <> ".hs"
+    tstInfToFilePath _                            = ""
+
+
+mkBchExact :: String -> FilePath -> [BchComp] -> Maybe String
+mkBchExact prefix relPathFile comps =
+  (prefix <>) . bchCompName <$> findOf traverse ((==) relPathFile . bchInfToFilePath . bchCompMainIs) comps
+  where
+    bchInfToFilePath :: BenchmarkInterface -> String
+    bchInfToFilePath (BenchmarkExeV10 _ filePath) = filePath
+    bchInfToFilePath _                            = ""
+  -- if relPathFile `elem` fmap exeCompMainIs comps
+  -- then Just $ prefix <> exeCompName comps
+  -- else Nothing
+-- >>> takeFileName "lib/Foo.hs"
+-- "Foo.hs"
+-- it :: FilePath
+--
+-- >>> dropFileName "lib/Foo.hs"
+-- "lib/"
+-- it :: FilePath
+
 -- NOTE: Longest path is the closest path to the target path.
 -- ex) The closest path to "app/mkCabalTarget/bar/wat" is "app/mkCabalTarget/bar"
 --     among "app", "app/mkCabalTarget" and "app/mkCabalTarget/bar".
 getCandiates :: [a] -> FilePath -> (a -> [FilePath]) -> [a]
+getCandiates [] _ _         = []
 getCandiates cs path getter = sortByLengthDescend getter cs ^.. traverse . filtered ((path `hasSuperDir`) . getter)
   where
-    sortByLengthDescend :: (Functor t, Foldable t, Foldable t1) => (a1 -> t (t1 a)) -> [a1] -> [a1]
-    sortByLengthDescend f = sortOn (Down . maximum . fmap length . f)
+    sortByLengthDescend :: (a1 -> [[a]]) -> [a1] -> [a1]
+    sortByLengthDescend _ [] = []
+    sortByLengthDescend f as = sortOn (Down . safeMaximum . fmap length . f) as
+
+    safeMaximum :: [Int] -> Int
+    safeMaximum [] = 0
+    safeMaximum as = maximum as
 
 
 mkFibTarget :: String -> FilePath -> [FibComp] -> Maybe String

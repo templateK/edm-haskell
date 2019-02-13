@@ -1,3 +1,5 @@
 -- allow-newer: safe-exceptions:base
 --            , transformers:base
 allow-newer: all
+
+documentation: false
